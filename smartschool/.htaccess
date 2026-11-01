@@ -5,6 +5,9 @@
 
     RewriteEngine On
 
+    # Prevent cached /login/login or /login/home
+    RewriteRule ^login/(login|home)/?$ /login [R=302,L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

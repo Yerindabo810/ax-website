@@ -16,8 +16,12 @@ $relPath = ltrim(substr($requestPath, strlen($scriptDir)), '/');
 
 $reservedCentral = [
     'index.php',
+    'login',
+    'logout',
+    'home',
     'register',
     'register-school',
+    'parent-login',
     'master-admin',
     'admin',
     'dashboard',
