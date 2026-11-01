@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartSchool.ug | Primary &amp; Secondary School Management System Uganda</title>
+  
+  <meta name="description" content="SmartSchool.ug is an all-in-one school ERP for primary and secondary schools in Uganda. CBC Lower Secondary Curriculum grading, automated instant report cards, and parent SMS.">
+  <meta name="author" content="AX Technologies Uganda">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Favicon and Touch Icons for Google Search and Modern Browsers -->
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand-link">
+        <img src="ax-logo.png" alt="AX Technologies Uganda Logo" class="brand-logo-img">
+        <div>
+          <div class="brand-name">AX <span>TECHNOLOGIES</span></div>
+          <div class="brand-sub">Uganda</div>
+        </div>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links" id="nav-menu">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="smartschool.html" class="active">SmartSchool.ug</a></li>
+          <li><a href="tradedesk.html">TradeDesk POS</a></li>
+          <li><a href="systems.html">All Systems</a></li>
+          <li><a href="pricing.html">Pricing</a></li>
+          <li><a href="contact.html">Contact Us</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <a href="contact.html" class="btn btn-primary btn-sm">Get in Touch</a>
+        <button class="mobile-toggle" id="menu-toggle" aria-label="Open Navigation">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- PAGE BANNER -->
+    <section class="page-banner">
+      <div class="container">
+        <div class="banner-pill">
+          <i class="fa-solid fa-graduation-cap"></i> EdTech ERP &bull; Primary &amp; Secondary Schools
+        </div>
+        <h1 class="banner-title"><span style="color:#003399;">Smart</span><span style="color:#c2182b;">School</span><span style="color:#003399;">.ug</span></h1>
+        <p class="banner-desc">
+          Automated academic management, New Lower Secondary CBC grading engine, instant termly report cards with QR codes, fee collection ledgers, and parent SMS broadcasts.
+        </p>
+        <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+          <a href="https://school.axtechnologies.net/" class="btn btn-primary">
+            <i class="fa-solid fa-rocket"></i> Open SmartSchool.ug Portal
+          </a>
+          <a href="https://school.axtechnologies.net/register-school" class="btn btn-secondary" style="background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.3);">
+            <i class="fa-solid fa-school"></i> Register Your School
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SYSTEM DETAILS & LARGE VIDEO VIEW -->
+    <section class="section">
+      <div class="container">
+        
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <img src="logo.png" alt="SmartSchool.ug Logo" style="width: 68px; height: 68px; object-fit: contain;">
+            <div>
+              <h2 style="font-size: 1.8rem;"><span style="color:#003399;">Smart</span><span style="color:#c2182b;">School</span><span style="color:#003399;">.ug</span> &mdash; Complete School Management</h2>
+              <div style="color: var(--primary-blue); font-weight: 600;">Tailored for Ugandan Primary &amp; Secondary Curricula</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <span class="system-status-pill status-active">
+              <i class="fa-solid fa-circle" style="font-size: 8px;"></i> Live in Production
+            </span>
+            <a href="https://school.axtechnologies.net/" class="btn btn-primary btn-sm">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Launch SmartSchool Landing Page
+            </a>
+          </div>
+        </div>
+
+        <!-- LARGE VIDEO VIEW (PLAYING AUTOMATICALLY AS REQUESTED) -->
+        <div class="video-large-container">
+          <div class="video-status-label">
+            <span class="live-pulse"></span>
+            <span>SmartSchool.ug &bull; System Walkthrough Demo Video</span>
+          </div>
+          <video poster="smartschool.ug dashboard.png" autoplay muted loop playsinline controls controlsList="nodownload noplaybackrate" disablePictureInPicture oncontextmenu="return false;" class="video-large-element">
+            <source src="demo-smartschool.mp4" type="video/mp4">
+            <source src="demo-smartschool.webm" type="video/webm">
+            Your browser does not support HTML5 video playback.
+          </video>
+        </div>
+
+        <!-- CORE CAPABILITIES GRID -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 3rem 0;">
+          <div style="background: var(--bg-white); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 1.5rem;">
+            <div style="font-size: 1.6rem; color: var(--primary-orange); margin-bottom: 0.75rem;"><i class="fa-solid fa-award"></i></div>
+            <h3 style="font-size: 1.2rem; color: var(--primary-navy); margin-bottom: 0.5rem;">CBC &amp; UNEB Grading</h3>
+            <p style="font-size: 0.9rem; color: var(--text-body);">
+              Automatic calculation of formative Activities of Integration (AoI) and Summative marks with standardized CBC descriptor conversion.
+            </p>
+          </div>
+
+          <div style="background: var(--bg-white); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 1.5rem;">
+            <div style="font-size: 1.6rem; color: var(--primary-blue); margin-bottom: 0.75rem;"><i class="fa-solid fa-file-pdf"></i></div>
+            <h3 style="font-size: 1.2rem; color: var(--primary-navy); margin-bottom: 0.5rem;">Instant Termly Report Cards</h3>
+            <p style="font-size: 0.9rem; color: var(--text-body);">
+              Generates complete, beautifully formatted printable PDF report cards with verifiable QR codes for every student in seconds.
+            </p>
+          </div>
+
+          <div style="background: var(--bg-white); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 1.5rem;">
+            <div style="font-size: 1.6rem; color: var(--accent-green); margin-bottom: 0.75rem;"><i class="fa-solid fa-wallet"></i></div>
+            <h3 style="font-size: 1.2rem; color: var(--primary-navy); margin-bottom: 0.5rem;">Fees Tracking &amp; Receipts</h3>
+            <p style="font-size: 0.9rem; color: var(--text-body);">
+              Bursar tracking for term fees expected, amounts collected, student balances, printable receipts, and daily collection inflow summaries.
+            </p>
+          </div>
+
+          <div style="background: var(--bg-white); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 1.5rem;">
+            <div style="font-size: 1.6rem; color: var(--primary-orange); margin-bottom: 0.75rem;"><i class="fa-solid fa-comment-sms"></i></div>
+            <h3 style="font-size: 1.2rem; color: var(--primary-navy); margin-bottom: 0.5rem;">Parent SMS Broadcasts</h3>
+            <p style="font-size: 0.9rem; color: var(--text-body);">
+              Automated SMS notifications directly sent to parents whenever school fees are deposited or end-of-term results are published.
+            </p>
+          </div>
+        </div>
+
+        <!-- SCREENSHOTS DISPLAY SECTION -->
+        <div style="margin: 4rem 0;">
+          <div class="section-title-wrap" style="text-align: left; margin-bottom: 2rem;">
+            <span class="section-tag">System Screenshots</span>
+            <h2 style="font-size: 1.8rem; color: var(--primary-navy);">System Interface Screenshots</h2>
+            <p style="color: var(--text-muted);">
+              Inspect the exact dashboard screens and report card engine used by school administrators and teachers.
+            </p>
+          </div>
+
+          <!-- DASHBOARD PHOTO -->
+          <div class="whole-image-wrapper">
+            <img src="smartschool.ug%20dashboard.png" alt="SmartSchool.ug Dashboard" class="whole-image open-img-modal" data-src="smartschool.ug%20dashboard.png" data-title="SmartSchool.ug - Academic &amp; Fees Dashboard">
+          </div>
+
+          <!-- REPORT CARDS PHOTO -->
+          <div class="whole-image-wrapper" style="margin-top: 2.5rem;">
+            <img src="smartschoool.ug%20reports.png" alt="SmartSchool.ug CBC Report Card Engine" class="whole-image open-img-modal" data-src="smartschoool.ug%20reports.png" data-title="SmartSchool.ug - CBC Termly Report Card Engine">
+          </div>
+        </div>
+
+        <!-- 7-TIER OFFICIAL PRICING TABLE -->
+        <div style="margin-top: 5rem;">
+          <div class="section-title-wrap">
+            <span class="section-tag">Affordable School Packages</span>
+            <h2 class="section-heading"><span style="color:#003399;">Smart</span><span style="color:#c2182b;">School</span><span style="color:#003399;">.ug</span> Official Annual Pricing</h2>
+            <p class="section-subtitle">
+              Every tier includes a dedicated isolated database, custom school subdomain, and automated CBC grading.
+            </p>
+          </div>
+
+          <div class="pricing-table-grid">
+            <!-- Starter Tier -->
+            <div class="pricing-card">
+              <div>
+                <div class="pricing-tier-tag">Free Starter</div>
+                <h3 class="pricing-title">Starter Tier</h3>
+                <div class="pricing-capacity">0 &ndash; 50 Students</div>
+                <div class="pricing-cost">Free <span class="pricing-period">(UGX 0)</span></div>
+                <p class="pricing-summary">Ideal for small or newly registered educational institutions.</p>
+                <ul class="pricing-features">
+                  <li><i class="fa-solid fa-check"></i> Dedicated isolated school database</li>
+                  <li><i class="fa-solid fa-check"></i> Custom school subdomain portal</li>
+                  <li><i class="fa-solid fa-check"></i> Student biodata &amp; attendance</li>
+                  <li><i class="fa-solid fa-check"></i> Basic marks recording &amp; reports</li>
+                </ul>
+              </div>
+              <a href="contact.html" class="btn btn-secondary btn-sm" style="width: 100%;">Enroll Starter</a>
+            </div>
+
+            <!-- Tier 2: Basic Tier -->
+            <div class="pricing-card">
+              <div>
+                <div class="pricing-tier-tag">Tier 2</div>
+                <h3 class="pricing-title">Basic Tier</h3>
+                <div class="pricing-capacity">51 &ndash; 100 Students</div>
+                <div class="pricing-cost">UGX 200,000 <span class="pricing-period">/ year</span></div>
+                <p class="pricing-summary">For growing community and small private primary schools.</p>
+                <ul class="pricing-features">
+                  <li><i class="fa-solid fa-check"></i> Everything in Starter Tier</li>
+                  <li><i class="fa-solid fa-check"></i> Full Academics &amp; Report Cards suite</li>
+                  <li><i class="fa-solid fa-check"></i> Termly fees tracking &amp; Printable receipts</li>
+                  <li><i class="fa-solid fa-check"></i> 90-day post-activation grace window</li>
+                </ul>
+              </div>
+              <a href="contact.html" class="btn btn-secondary btn-sm" style="width: 100%;">Select Basic</a>
+            </div>
+
+            <!-- Tier 3: Standard Tier -->
+            <div class="pricing-card">
+              <div>
+                <div class="pricing-tier-tag">Tier 3</div>
+                <h3 class="pricing-title">Standard Tier</h3>
+                <div class="pricing-capacity">101 &ndash; 250 Students</div>
+                <div class="pricing-cost">UGX 350,000 <span class="pricing-period">/ year</span></div>
+                <p class="pricing-summary">Standard primary and secondary schools across Uganda.</p>
+                <ul class="pricing-features">
+                  <li><i class="fa-solid fa-check"></i> Everything in Basic Tier</li>
+                  <li><i class="fa-solid fa-check"></i> <strong>New CBC Lower Secondary grading engine</strong></li>
+                  <li><i class="fa-solid fa-check"></i> Formative &amp; Summative Score Cards with QR</li>
+                  <li><i class="fa-solid fa-check"></i> Bursar analytics &amp; Daily collections inflow</li>
+                  <li><i class="fa-solid fa-check"></i> Bulk SMS communication wallet</li>
+                </ul>
+              </div>
+              <a href="contact.html" class="btn btn-secondary btn-sm" style="width: 100%;">Select Standard</a>
+            </div>
+
+            <!-- Tier 4: Growth Tier -->
+            <div class="pricing-card">
+              <div>
+                <div class="pricing-tier-tag">Tier 4</div>
+                <h3 class="pricing-title">Growth Tier</h3>
+                <div class="pricing-capacity">251 &ndash; 400 Students</div>
+                <div class="pricing-cost">UGX 450,000 <span class="pricing-period">/ year</span></div>
+                <p class="pricing-summary">Mid-sized established educational institutions.</p>
+                <ul class="pricing-features">
+                  <li><i class="fa-solid fa-check"></i> Everything in Standard Tier</li>
+                  <li><i class="fa-solid fa-check"></i> Multi-stream performance analysis</li>
+                  <li><i class="fa-solid fa-check"></i> Store inventory &amp; Uniforms distribution</li>
+                  <li><i class="fa-solid fa-check"></i> Digital Library book circulation</li>
+                </ul>
+              </div>
+              <a href="contact.html" class="btn btn-secondary btn-sm" style="width: 100%;">Select Growth</a>
+            </div>
+
+            <!-- Tier 5: Advanced Tier (FEATURED / MOST POPULAR) -->
+            <div class="pricing-card featured">
+              <span class="featured-label">MOST POPULAR</span>
+              <div>
+                <div class="pricing-tier-tag" style="color: var(--primary-orange);">Tier 5 &bull; Recommended</div>
+                <h3 class="pricing-title">Advanced Tier</h3>
+                <div class="pricing-capacity">401 &ndash; 700 Students</div>
+                <div class="pricing-cost" style="color: var(--primary-orange);">UGX 600,000 <span class="pricing-period">/ year</span></div>
+                <p class="pricing-summary">Large secondary and comprehensive colleges.</p>
+                <ul class="pricing-features">
+                  <li><i class="fa-solid fa-check"></i> Everything in Growth Tier</li>
+                  <li><i class="fa-solid fa-check"></i> A-Level Subject Combinations &amp; Electives</li>
+                  <li><i class="fa-solid fa-check"></i> Sick bay &amp; Health Center records</li>
+                  <li><i class="fa-solid fa-check"></i> Bank reconciliation &amp; Vote book budget</li>
+                </ul>
+              </div>
+              <a href="contact.html" class="btn btn-primary btn-sm" style="width: 100%;">Select Advanced</a>
+            </div>
+
+            <!-- Tier 6: Premium Tier -->
+            <div class="pricing-card">
+              <div>
+                <div class="pricing-tier-tag">Tier 6</div>
+                <h3 class="pricing-title">Premium Tier</h3>
+                <div class="pricing-capacity">701 &ndash; 1,000 Students</div>
+                <div class="pricing-cost">UGX 800,000 <span class="pricing-period">/ year</span></div>
+                <p class="pricing-summary">High-capacity institutions &amp; top boarding schools.</p>
+                <ul class="pricing-features">
+                  <li><i class="fa-solid fa-check"></i> Everything in Advanced Tier</li>
+                  <li><i class="fa-solid fa-check"></i> School Shuttle &amp; Fleet route manifests</li>
+                  <li><i class="fa-solid fa-check"></i> Priority phone technical support</li>
+                  <li><i class="fa-solid fa-check"></i> Automated daily off-site cloud backups</li>
+                </ul>
+              </div>
+              <a href="contact.html" class="btn btn-secondary btn-sm" style="width: 100%;">Select Premium</a>
+            </div>
+
+            <!-- Tier 7: Enterprise Tier -->
+            <div class="pricing-card">
+              <div>
+                <div class="pricing-tier-tag">Tier 7 &bull; Enterprise</div>
+                <h3 class="pricing-title">Enterprise Tier</h3>
+                <div class="pricing-capacity">1,000+ Students</div>
+                <div class="pricing-cost">UGX 1,200,000 <span class="pricing-period">/ year</span></div>
+                <p class="pricing-summary">Major institutional campuses with over 1,000 learners.</p>
+                <ul class="pricing-features">
+                  <li><i class="fa-solid fa-check"></i> Unlimited student enrollment capacity</li>
+                  <li><i class="fa-solid fa-check"></i> Dedicated server allocation &amp; backups</li>
+                  <li><i class="fa-solid fa-check"></i> Dedicated Account Manager in Bushenyi</li>
+                  <li><i class="fa-solid fa-check"></i> Free on-site staff and bursar onboarding</li>
+                </ul>
+              </div>
+              <a href="contact.html" class="btn btn-secondary btn-sm" style="width: 100%;">Select Enterprise</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- CALL TO ACTION -->
+        <div style="text-align: center; margin-top: 4rem; padding: 2.5rem; background: var(--bg-white); border: 1px solid var(--border-light); border-radius: var(--radius-lg);">
+          <h2 style="font-size: 1.8rem; color: var(--primary-navy); margin-bottom: 0.75rem;">Get Your School Onboarded Today</h2>
+          <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 1.5rem;">
+            Our team will setup your dedicated school portal, import your existing student lists, and train your staff.
+          </p>
+          <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="https://school.axtechnologies.net/" class="btn btn-primary">
+              <i class="fa-solid fa-rocket"></i> Go to SmartSchool.ug Landing Page
+            </a>
+            <a href="contact.html" class="btn btn-secondary">
+              <i class="fa-solid fa-file-signature"></i> Request School Onboarding
+            </a>
+            <a href="https://wa.me/256772651444" target="_blank" class="btn btn-secondary" style="border-color: #16a34a; color: #16a34a;">
+              <i class="fa-brands fa-whatsapp"></i> Chat on WhatsApp (0772 651 444)
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand-title">AX <span>TECHNOLOGIES</span> UGANDA</div>
+          <p class="footer-text">Professional web application development in Bushenyi, Uganda.</p>
+          <div style="font-size: 0.85rem; color: #94a3b8;"><i class="fa-solid fa-location-dot" style="color: var(--primary-orange);"></i> Bushenyi, Uganda</div>
+        </div>
+
+        <div>
+          <h4 class="footer-heading">Our Systems</h4>
+          <ul class="footer-menu">
+            <li><a href="smartschool.html">SmartSchool.ug</a></li>
+            <li><a href="tradedesk.html">TradeDesk POS</a></li>
+            <li><a href="systems.html#smartpharma">SmartPharma.ug</a></li>
+            <li><a href="systems.html#smartcare">SmartCare.ug</a></li>
+            <li><a href="systems.html#bizbooks">BizBooks.ug</a></li>
+            <li><a href="pricing.html">SmartSchool Pricing</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-heading">Quick Links</h4>
+          <ul class="footer-menu">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="smartschool.html">SmartSchool.ug</a></li>
+            <li><a href="tradedesk.html">TradeDesk POS</a></li>
+            <li><a href="systems.html">All Systems</a></li>
+            <li><a href="pricing.html">Pricing Table</a></li>
+            <li><a href="contact.html">Contact Us</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-heading">Contact Details</h4>
+          <ul class="footer-menu">
+            <li><a href="mailto:support@axtechnologies.net">support@axtechnologies.net</a></li>
+            <li><a href="mailto:info@axtechnologies.net">info@axtechnologies.net</a></li>
+            <li><a href="mailto:axtechnologiesug@gmail.com">axtechnologiesug@gmail.com</a></li>
+            <li><a href="tel:+256772651444">0772 651 444</a></li>
+            <li><a href="tel:+256740233225">0740 233 225</a></li>
+            <li style="color: #94a3b8; font-size: 0.85rem;">Bushenyi, Uganda</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bar">
+        <div>&copy; 2026 AX Technologies Uganda. All rights reserved.</div>
+        <div>
+          <a href="privacy-policy.html" style="color: #cbd5e1; margin-left: 1.25rem; text-decoration: underline;">Privacy Policy</a>
+          <a href="terms-of-service.html" style="color: #cbd5e1; margin-left: 1.25rem; text-decoration: underline;">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- LIGHTBOX MODAL -->
+  <div id="image-modal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-top">
+        <div id="image-title" class="modal-header-title">Full Photo View</div>
+        <button id="close-image-btn" class="modal-close-icon" aria-label="Close">&times;</button>
+      </div>
+      <div style="padding: 1.5rem; text-align: center; background: #f8fafc;">
+        <img id="image-element" src="" alt="Full System Screenshot" class="lightbox-img-full">
+      </div>
+    </div>
+  </div>
+
+  <!-- WHATSAPP FLOATING BUBBLE (BOTTOM RIGHT CORNER) -->
+  <div class="whatsapp-float-container">
+    <span class="whatsapp-tooltip">Chat with us on WhatsApp</span>
+    <a href="https://wa.me/256772651444?text=Hello%20AX%20Technologies%20Uganda,%20I%20would%20like%20to%20inquire%20about%20SmartSchool.ug." target="_blank" rel="noopener noreferrer" class="whatsapp-float-btn" aria-label="Chat on WhatsApp">
+      <span class="whatsapp-pulse-ring"></span>
+      <i class="fa-brands fa-whatsapp"></i>
+    </a>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

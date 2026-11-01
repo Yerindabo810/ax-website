@@ -1,0 +1,16 @@
+# Nested sub-system repositories (each has its own git repo)
+/ax-systems/
+/upload/
+
+# Video files (over GitHub recommended limits)
+*.mp4
+*.webm
+
+# Logs, errors, and sensitive data
+*.log
+inquiries_log.json
+file.enc
+Cloudflare_*.csv
+.well-known/
+.DS_Store
+Thumbs.db

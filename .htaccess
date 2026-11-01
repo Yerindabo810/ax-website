@@ -1,0 +1,123 @@
+# ==============================================================================
+# AX TECHNOLOGIES UGANDA - APACHE CONFIGURATION (.htaccess)
+# Tailored for InfinityFree Hosting & Cloudflare Reverse Proxy
+# Domain: axtechnologies.net
+# ==============================================================================
+
+# Disable directory browsing
+Options -Indexes
+
+# Set default index file
+DirectoryIndex index.html index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # ----------------------------------------------------------------------------
+  # 1. FORCE HTTPS REDIRECT (InfinityFree & Reverse Proxy Compatible)
+  # Prevents infinite redirect loops under Cloudflare / iFastNet reverse proxy
+  # Skips localhost / 127.0.0.1 for local XAMPP testing
+  # ----------------------------------------------------------------------------
+  RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:[0-9]+)?$ [NC]
+  RewriteCond %{HTTP:X-Forwarded-Proto} =http [OR]
+  RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:[0-9]+)?$ [NC]
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # ----------------------------------------------------------------------------
+  # 2. CANONICAL HOST REDIRECT (www.axtechnologies.net -> axtechnologies.net)
+  # ----------------------------------------------------------------------------
+  RewriteCond %{HTTP_HOST} ^www\.axtechnologies\.net$ [NC]
+  RewriteRule ^(.*)$ https://axtechnologies.net/$1 [L,R=301]
+
+  # ----------------------------------------------------------------------------
+  # 2B. REDIRECT MAIN DOMAIN SYSTEM PATHS TO DEDICATED SUBDOMAINS
+  # ----------------------------------------------------------------------------
+  RewriteCond %{HTTP_HOST} ^(www\.)?axtechnologies\.net$ [NC]
+  RewriteRule ^tradedeskpos(?:/(.*))?$ https://pos.axtechnologies.net/$1 [R=301,L,NE]
+
+  RewriteCond %{HTTP_HOST} ^(www\.)?axtechnologies\.net$ [NC]
+  RewriteRule ^pos(?:/(.*))?$ https://pos.axtechnologies.net/$1 [R=301,L,NE]
+
+  RewriteCond %{HTTP_HOST} ^(www\.)?axtechnologies\.net$ [NC]
+  RewriteRule ^bizbooks(?:/(.*))?$ https://books.axtechnologies.net/$1 [R=301,L,NE]
+
+  RewriteCond %{HTTP_HOST} ^(www\.)?axtechnologies\.net$ [NC]
+  RewriteRule ^books(?:/(.*))?$ https://books.axtechnologies.net/$1 [R=301,L,NE]
+
+  RewriteCond %{HTTP_HOST} ^(www\.)?axtechnologies\.net$ [NC]
+  RewriteRule ^smartschool(?:/(.*))?$ https://school.axtechnologies.net/$1 [R=301,L,NE]
+
+  RewriteCond %{HTTP_HOST} ^(www\.)?axtechnologies\.net$ [NC]
+  RewriteRule ^school(?:/(.*))?$ https://school.axtechnologies.net/$1 [R=301,L,NE]
+
+  RewriteCond %{HTTP_HOST} ^(www\.)?axtechnologies\.net$ [NC]
+  RewriteRule ^smartpharma(?:/(.*))?$ https://pharma.axtechnologies.net/$1 [R=301,L,NE]
+
+  RewriteCond %{HTTP_HOST} ^(www\.)?axtechnologies\.net$ [NC]
+  RewriteRule ^pharma(?:/(.*))?$ https://pharma.axtechnologies.net/$1 [R=301,L,NE]
+
+  # ----------------------------------------------------------------------------
+  # 3. PROTECT INTERNAL FOLDERS AND SENSITIVE FILES (403 Forbidden)
+  # ----------------------------------------------------------------------------
+  RewriteRule ^ax-systems(/.*)?$ - [F,L,NC]
+  RewriteRule ^vendor(/.*)?$ - [F,L,NC]
+  RewriteRule ^composer\.(json|lock)$ - [F,L,NC]
+  RewriteRule ^inquiries_log\.json$ - [F,L,NC]
+  RewriteRule ^file\.enc$ - [F,L,NC]
+  RewriteRule ^\.env - [F,L,NC]
+  RewriteRule ^\.git - [F,L,NC]
+
+</IfModule>
+
+# ------------------------------------------------------------------------------
+# 5. BROWSER CACHING HEADERS (Fast Page Load Times)
+# ------------------------------------------------------------------------------
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault "access plus 1 month"
+
+  # HTML & Sitemaps: revalidate faster
+  ExpiresByType text/html "access plus 1 hour"
+  ExpiresByType application/xml "access plus 1 hour"
+  ExpiresByType text/xml "access plus 1 hour"
+
+  # CSS and JavaScript
+  ExpiresByType text/css "access plus 1 month"
+  ExpiresByType application/javascript "access plus 1 month"
+  ExpiresByType text/javascript "access plus 1 month"
+
+  # Media (Images, Fonts, Videos)
+  ExpiresByType image/x-icon "access plus 1 year"
+  ExpiresByType image/vnd.microsoft.icon "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType video/webm "access plus 1 year"
+  ExpiresByType video/mp4 "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+
+# ------------------------------------------------------------------------------
+# 6. GZIP COMPRESSION
+# ------------------------------------------------------------------------------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css
+  AddOutputFilterByType DEFLATE application/javascript application/json application/xml
+</IfModule>
+
+# ------------------------------------------------------------------------------
+# 7. SECURITY HEADERS
+# ------------------------------------------------------------------------------
+<IfModule mod_headers.c>
+  # Prevent MIME type sniffing
+  Header set X-Content-Type-Options "nosniff"
+  # Clickjacking defense
+  Header set X-Frame-Options "SAMEORIGIN"
+  # Referrer policy
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  # HTTP Strict Transport Security (HSTS - 1 Year + Subdomains)
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+</IfModule>

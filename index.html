@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AX Technologies Uganda | Web Application Development &amp; Software Systems</title>
+  
+  <meta name="description" content="AX Technologies Uganda is a full stack web application development firm in Bushenyi, Uganda. Developers of SmartSchool.ug, TradeDesk POS, SmartPharma.ug, and SmartCare.ug.">
+  <meta name="author" content="AX Technologies Uganda">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Favicon and Touch Icons for Google Search and Modern Browsers -->
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+</head>
+<body>
+
+  <!-- NAVIGATION -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand-link">
+        <img src="ax-logo.png" alt="AX Technologies Uganda Logo" class="brand-logo-img">
+        <div>
+          <div class="brand-name">AX <span>TECHNOLOGIES</span></div>
+          <div class="brand-sub">Uganda</div>
+        </div>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links" id="nav-menu">
+          <li><a href="index.html" class="active">Home</a></li>
+          <li><a href="smartschool.html">SmartSchool.ug</a></li>
+          <li><a href="tradedesk.html">TradeDesk POS</a></li>
+          <li><a href="systems.html">All Systems</a></li>
+          <li><a href="pricing.html">Pricing</a></li>
+          <li><a href="contact.html">Contact Us</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <a href="contact.html" class="btn btn-primary btn-sm">Get in Touch</a>
+        <button class="mobile-toggle" id="menu-toggle" aria-label="Open Navigation">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO SECTION -->
+    <section class="hero-section">
+      <div class="container">
+        <div class="hero-pill">
+          <i class="fa-solid fa-laptop-code"></i> Web Application Development &bull; Bushenyi, Uganda
+        </div>
+
+        <h1 class="hero-title">
+          Custom Web Applications &amp; <br>
+          <span>Enterprise Software Systems</span>
+        </h1>
+
+        <p class="hero-desc">
+          We are <strong>AX Technologies Uganda</strong>, a full-stack software development firm based in Bushenyi, Uganda. 
+          We engineer high-performance systems for educational institutions, wholesale &amp; retail businesses, pharmacies, and healthcare centers.
+        </p>
+
+        <div class="hero-buttons">
+          <a href="smartschool.html" class="btn btn-primary">
+            <i class="fa-solid fa-graduation-cap"></i> SmartSchool.ug System
+          </a>
+          <a href="tradedesk.html" class="btn btn-secondary">
+            <i class="fa-solid fa-cash-register"></i> TradeDesk POS System
+          </a>
+          <a href="contact.html" class="btn btn-secondary">
+            <i class="fa-solid fa-phone"></i> Contact Developer
+          </a>
+        </div>
+
+        <!-- Metrics Row -->
+        <div class="stats-bar">
+          <div class="stat-item">
+            <div class="stat-num" style="color: var(--primary-orange);">5</div>
+            <div class="stat-label">Software Systems</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num" style="color: var(--primary-blue);">15+</div>
+            <div class="stat-label">Partner Schools</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num" style="color: var(--accent-green);">MoMo</div>
+            <div class="stat-label">MTN &amp; Airtel Integrated</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num">Bushenyi</div>
+            <div class="stat-label">Uganda HQ</div>
+          </div>
+        </div>
+
+        <!-- VISUAL HERO SHOWCASE (LIVE SOFTWARE PREVIEWS) -->
+        <div class="hero-mockup-container">
+          <div class="browser-mockup-frame">
+            <div class="mockup-header-bar">
+              <div class="mockup-dots">
+                <span class="mockup-dot red"></span>
+                <span class="mockup-dot yellow"></span>
+                <span class="mockup-dot green"></span>
+              </div>
+              <div class="mockup-address-bar">
+                <i class="fa-solid fa-lock" style="color: #10b981; font-size: 0.75rem;"></i>
+                <span>https://smartschool.ug/portal/dashboard</span>
+              </div>
+              <div style="margin-left: auto; font-size: 0.75rem; font-weight: 600; color: var(--primary-blue);">
+                <i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Production Live
+              </div>
+            </div>
+            <img src="smartschool.ug%20dashboard.png" alt="SmartSchool.ug Academic &amp; Fees Dashboard Live Interface" class="hero-showcase-img open-img-modal" data-src="smartschool.ug%20dashboard.png" data-title="SmartSchool.ug - Academic &amp; Fees Dashboard (Live Interface)">
+          </div>
+
+          <!-- Floating Secondary Live Preview (TradeDesk POS Mobile Terminal) -->
+          <div class="floating-mobile-preview">
+            <div class="floating-badge">
+              <i class="fa-solid fa-store" style="color: var(--primary-orange);"></i> TradeDesk POS Mobile
+            </div>
+            <img src="tradedesk%20pos-mobile.png" alt="TradeDesk POS Mobile Cashier Interface" class="open-img-modal" data-src="tradedesk%20pos-mobile.png" data-title="TradeDesk POS - Mobile Cashier Terminal View">
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- AUTOMATIC SLIDING PARTNER SCHOOL LOGOS (RIGHT TO LEFT) -->
+    <section class="partners-section">
+      <div class="container" style="text-align: center; margin-bottom: 1.5rem;">
+        <span class="section-tag">Trusted Partners</span>
+        <h2 style="font-size: 1.6rem; color: var(--primary-navy);">Schools Powered by SmartSchool.ug Across Uganda</h2>
+        <p style="font-size: 0.95rem; color: var(--text-muted);">
+          Institutions across Uganda rely on our software for student academic records, CBC grading, and school fees collections.
+        </p>
+      </div>
+
+      <!-- Moving Right to Left continuously (Logos only, no names) -->
+      <div class="slider-wrapper">
+        <div class="slider-track" id="slider-track">
+          <div class="logo-item-box"><img src="school-logos/ebenezer.png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/home_logo.png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/idiwa.png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/kigarama.png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/logo-removebg-preview.png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/logo1.png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/paluda%20(1).png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/school_772651001_1774821719.png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/soma%20Secondary%20School.png" alt="School Partner Logo"></div>
+
+          <!-- Duplicate copy for continuous smooth slide -->
+          <div class="logo-item-box"><img src="school-logos/ebenezer.png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/home_logo.png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/idiwa.png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/kigarama.png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/logo-removebg-preview.png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/logo1.png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/paluda%20(1).png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/school_772651001_1774821719.png" alt="School Partner Logo"></div>
+          <div class="logo-item-box"><img src="school-logos/soma%20Secondary%20School.png" alt="School Partner Logo"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SYSTEMS OVERVIEW SECTION -->
+    <section class="section">
+      <div class="container">
+        <div class="section-title-wrap">
+          <span class="section-tag">Software Portfolio</span>
+          <h2 class="section-heading">Featured Enterprise Systems</h2>
+          <p class="section-subtitle">
+            Click on any system to visit its dedicated page with video walkthroughs, full screenshots, and specifications.
+          </p>
+        </div>
+
+        <div class="systems-directory-grid">
+          
+          <!-- Card 1: SmartSchool.ug -->
+          <article class="system-directory-card">
+            <div>
+              <span class="system-status-pill status-active">
+                <i class="fa-solid fa-circle" style="font-size: 8px;"></i> Live in Production
+              </span>
+              <div class="dir-card-media-banner">
+                <img src="smartschool.ug%20dashboard.png" alt="SmartSchool.ug Dashboard Preview" class="open-img-modal" data-src="smartschool.ug%20dashboard.png" data-title="SmartSchool.ug - Academic &amp; Fees Dashboard">
+                <span class="media-tag-overlay"><i class="fa-solid fa-desktop"></i> Portal Dashboard</span>
+              </div>
+              <div class="dir-card-header">
+                <img src="logo.png" alt="SmartSchool.ug Logo" class="dir-card-logo">
+                <div>
+                  <h3 class="dir-card-title"><span style="color:#003399;">Smart</span><span style="color:#c2182b;">School</span><span style="color:#003399;">.ug</span></h3>
+                  <div class="dir-card-headline">Primary &amp; Secondary School ERP</div>
+                </div>
+              </div>
+              <p class="dir-card-desc">
+                Complete school management system for both primary and secondary schools in Uganda. Supports the New Lower Secondary CBC grading engine, automated instant report cards, fees collection ledgers, and parent SMS broadcasts.
+              </p>
+              <ul class="features-checklist">
+                <li><i class="fa-solid fa-check"></i> Primary &amp; Secondary curricula</li>
+                <li><i class="fa-solid fa-check"></i> Instant CBC report cards with QR codes</li>
+                <li><i class="fa-solid fa-check"></i> Fees tracking &amp; collection receipts</li>
+                <li><i class="fa-solid fa-check"></i> Parent SMS alerts integration</li>
+              </ul>
+            </div>
+            <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              <a href="https://school.axtechnologies.net/" class="btn btn-primary" style="flex: 1;">
+                <span>Launch SmartSchool Portal</span>
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              </a>
+              <a href="smartschool.html" class="btn btn-secondary btn-sm">Details</a>
+            </div>
+          </article>
+
+          <!-- Card 2: TradeDesk POS -->
+          <article class="system-directory-card">
+            <div>
+              <span class="system-status-pill status-active">
+                <i class="fa-solid fa-circle" style="font-size: 8px;"></i> Live in Production
+              </span>
+              <div class="dir-card-media-banner">
+                <img src="tradesk%20login%20desktop.png" alt="TradeDesk POS System Preview" class="open-img-modal" data-src="tradesk%20login%20desktop.png" data-title="TradeDesk POS - Desktop Shift Login &amp; Management">
+                <span class="media-tag-overlay"><i class="fa-solid fa-cash-register"></i> Shift Cashier</span>
+              </div>
+              <div class="dir-card-header">
+                <img src="TradeDesk%20logo.png" alt="TradeDesk POS Logo" class="dir-card-logo">
+                <div>
+                  <h3 class="dir-card-title"><span style="color:#0047ab;">Trade</span><span style="color:#f06000;">Desk</span> <span style="color:#0047ab;">POS</span></h3>
+                  <div class="dir-card-headline">Wholesale &amp; Retail POS</div>
+                </div>
+              </div>
+              <p class="dir-card-desc">
+                High-speed point-of-sale system built for all wholesale and retail stores. Integrated directly with MTN Mobile Money and Airtel Money, thermal receipt printers, and barcode scanners.
+              </p>
+              <ul class="features-checklist">
+                <li><i class="fa-solid fa-check"></i> Mobile Money payments (MTN MoMo &amp; Airtel)</li>
+                <li><i class="fa-solid fa-check"></i> Wholesale and retail dual pricing</li>
+                <li><i class="fa-solid fa-check"></i> 80mm &amp; 58mm thermal receipt printing</li>
+                <li><i class="fa-solid fa-check"></i> Stock tracking &amp; cashier shift reports</li>
+              </ul>
+            </div>
+            <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              <a href="https://pos.axtechnologies.net/" class="btn btn-primary" style="flex: 1;">
+                <span>Launch TradeDesk POS</span>
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              </a>
+              <a href="tradedesk.html" class="btn btn-secondary btn-sm">Details</a>
+            </div>
+          </article>
+
+          <!-- Card 3: SmartPharma.ug -->
+          <article class="system-directory-card">
+            <div>
+              <span class="system-status-pill status-active">
+                <i class="fa-solid fa-circle" style="font-size: 8px;"></i> Live in Production
+              </span>
+              <div class="media-branding-banner pharma">
+                <img src="SmartPharma.ug%20Healthcare%20Logo.png" alt="SmartPharma.ug Healthcare Logo">
+                <span class="media-tag-overlay" style="background: rgba(4,93,54,0.85);"><i class="fa-solid fa-pills"></i> Dispensary ERP</span>
+              </div>
+              <div class="dir-card-header">
+                <img src="SmartPharma.ug%20Healthcare%20Logo.png" alt="SmartPharma.ug Logo" class="dir-card-logo">
+                <div>
+                  <h3 class="dir-card-title"><span style="color:#045d36;">Smart</span><span style="color:#a81d24;">Pharma</span><span style="color:#0f3b7d;">.ug</span></h3>
+                  <div class="dir-card-headline">Pharmacy Dispensing System</div>
+                </div>
+              </div>
+              <p class="dir-card-desc">
+                Digital pharmaceutical management system engineered for drug dispensaries and wholesalers. Automated batch number tracking, expiry date alarms (30/60/90 days), and prescription auditing.
+              </p>
+              <ul class="features-checklist">
+                <li><i class="fa-solid fa-check"></i> Batch tracking &amp; automated expiry alarms</li>
+                <li><i class="fa-solid fa-check"></i> Digital prescription verification</li>
+                <li><i class="fa-solid fa-check"></i> Drug restocking and supplier orders</li>
+              </ul>
+            </div>
+            <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              <a href="https://pharma.axtechnologies.net/" class="btn btn-primary" style="flex: 1;">
+                <span>Launch SmartPharma</span>
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              </a>
+              <a href="systems.html#smartpharma" class="btn btn-secondary btn-sm">Details</a>
+            </div>
+          </article>
+
+          <!-- Card 4: SmartCare.ug -->
+          <article class="system-directory-card">
+            <div>
+              <span class="system-status-pill status-dev">
+                <i class="fa-solid fa-gear"></i> Under Development
+              </span>
+              <div class="media-branding-banner care">
+                <img src="SmartCare.ug%20Healthcare%20Emblem.png" alt="SmartCare.ug Healthcare Logo">
+                <span class="media-tag-overlay" style="background: rgba(15,59,125,0.85);"><i class="fa-solid fa-hospital"></i> HIMS &amp; EMR</span>
+              </div>
+              <div class="dir-card-header">
+                <img src="SmartCare.ug%20Healthcare%20Emblem.png" alt="SmartCare.ug Healthcare Logo" class="dir-card-logo">
+                <div>
+                  <h3 class="dir-card-title"><span style="color:#045d36;">Smart</span><span style="color:#0f3b7d;">Care</span><span style="color:#a81d24;">.ug</span></h3>
+                  <div class="dir-card-headline">Hospital Management System (HIMS)</div>
+                </div>
+              </div>
+              <p class="dir-card-desc">
+                Comprehensive hospital information management system for clinical centers and hospitals. Digitizes patient electronic medical records, doctor consultation desks, laboratory test orders, and ward bed allocations.
+              </p>
+              <ul class="features-checklist">
+                <li><i class="fa-solid fa-check"></i> Electronic Medical Records (EMR)</li>
+                <li><i class="fa-solid fa-check"></i> Doctor consultation &amp; triage queues</li>
+                <li><i class="fa-solid fa-check"></i> Digital lab requests &amp; result dispatch</li>
+              </ul>
+            </div>
+            <div style="margin-top: 1.5rem;">
+              <a href="systems.html#smartcare" class="btn btn-secondary" style="width: 100%;">
+                <span>View System Details</span>
+                <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+          </article>
+
+          <!-- Card 5: BizBooks.ug -->
+          <article class="system-directory-card">
+            <div>
+              <span class="system-status-pill status-active">
+                <i class="fa-solid fa-circle" style="font-size: 8px;"></i> Live in Production
+              </span>
+              <div class="media-branding-banner books">
+                <img src="BizBooks.ug%20Growth%20Emblem.png" alt="BizBooks.ug Growth Emblem">
+                <span class="media-tag-overlay" style="background: rgba(0,71,171,0.85);"><i class="fa-solid fa-chart-line"></i> Accounting Suite</span>
+              </div>
+              <div class="dir-card-header">
+                <img src="BizBooks.ug%20Growth%20Emblem.png" alt="BizBooks.ug Growth Emblem" class="dir-card-logo">
+                <div>
+                  <h3 class="dir-card-title"><span style="color:#0047ab;">BizBooks</span><span style="color:#f08000;">.ug</span></h3>
+                  <div class="dir-card-headline">Cloud Bookkeeping &amp; Accounting</div>
+                </div>
+              </div>
+              <p class="dir-card-desc">
+                Cloud financial bookkeeping and accounting suite built for Ugandan businesses and institutions. Streamlines double-entry ledgers, automated invoicing, URA tax compliance, and real-time cash flow statements.
+              </p>
+              <ul class="features-checklist">
+                <li><i class="fa-solid fa-check"></i> Double-entry bookkeeping &amp; journal ledgers</li>
+                <li><i class="fa-solid fa-check"></i> Instant invoicing, quotations &amp; billing receipts</li>
+                <li><i class="fa-solid fa-check"></i> Tax compliance &amp; automated profit/loss audits</li>
+                <li><i class="fa-solid fa-check"></i> Real-time cash flow &amp; bank ledger reconciliation</li>
+              </ul>
+            </div>
+            <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              <a href="https://books.axtechnologies.net/" class="btn btn-primary" style="flex: 1;">
+                <span>Launch BizBooks Portal</span>
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              </a>
+              <a href="systems.html#bizbooks" class="btn btn-secondary btn-sm">Details</a>
+            </div>
+          </article>
+
+          <!-- Card 6: SmartLearn.ug -->
+          <article class="system-directory-card">
+            <div>
+              <span class="system-status-pill status-dev">
+                <i class="fa-solid fa-gear"></i> Under Development
+              </span>
+              <div class="media-branding-banner learn">
+                <img src="SmartLearn.ug%20Education%20Logo.png" alt="SmartLearn.ug Education Logo">
+                <span class="media-tag-overlay" style="background: rgba(0,51,153,0.85);"><i class="fa-solid fa-graduation-cap"></i> E-Learning &amp; Revision</span>
+              </div>
+              <div class="dir-card-header">
+                <img src="SmartLearn.ug%20Education%20Logo.png" alt="SmartLearn.ug Education Logo" class="dir-card-logo">
+                <div>
+                  <h3 class="dir-card-title"><span style="color:#003399;">Smart</span><span style="color:#ea580c;">Learn</span><span style="color:#003399;">.ug</span></h3>
+                  <div class="dir-card-headline">Digital E-Learning &amp; Revision Platform</div>
+                </div>
+              </div>
+              <p class="dir-card-desc">
+                Interactive digital learning, curriculum-aligned revision resources, past papers, and AI-assisted study tools designed for primary, secondary, and tertiary learners across Uganda.
+              </p>
+              <ul class="features-checklist">
+                <li><i class="fa-solid fa-check"></i> Curriculum-aligned digital notes &amp; video lessons</li>
+                <li><i class="fa-solid fa-check"></i> Interactive quizzes, past papers &amp; self-assessments</li>
+                <li><i class="fa-solid fa-check"></i> Student progress tracking &amp; revision analytics</li>
+              </ul>
+            </div>
+            <div style="margin-top: 1.5rem;">
+              <a href="systems.html#smartlearn" class="btn btn-secondary" style="width: 100%;">
+                <span>View System Details</span>
+                <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- PRODUCTION SYSTEMS INTERFACE SHOWCASE (REAL INTERFACE SCREENSHOTS) -->
+    <section class="section" style="background: #ffffff; border-top: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);">
+      <div class="container">
+        <div class="section-title-wrap">
+          <span class="section-tag">Software In Action</span>
+          <h2 class="section-heading">Production Interfaces &amp; Workflows</h2>
+          <p class="section-subtitle">
+            Inspect the exact digital screens used by school bursars, teachers, retail cashiers, and store managers. Click any image to view full-resolution.
+          </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem;">
+          <!-- Screen 1: SmartSchool Dashboard -->
+          <div class="whole-image-wrapper" style="margin-bottom: 0;">
+            <div style="font-weight: 700; color: var(--primary-navy); margin-bottom: 0.75rem; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+              <span><i class="fa-solid fa-chart-pie" style="color: var(--primary-blue);"></i> SmartSchool.ug Analytics Dashboard</span>
+              <span style="font-size: 0.75rem; color: #16a34a; background: #f0fdf4; padding: 2px 8px; border-radius: 4px;">Live in Schools</span>
+            </div>
+            <img src="smartschool.ug%20dashboard.png" alt="SmartSchool.ug Dashboard" class="whole-image open-img-modal" data-src="smartschool.ug%20dashboard.png" data-title="SmartSchool.ug - Academic &amp; Fees Analytics Dashboard">
+          </div>
+
+          <!-- Screen 2: SmartSchool Report Cards -->
+          <div class="whole-image-wrapper" style="margin-bottom: 0;">
+            <div style="font-weight: 700; color: var(--primary-navy); margin-bottom: 0.75rem; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+              <span><i class="fa-solid fa-file-invoice" style="color: var(--primary-orange);"></i> CBC Termly Report Card Engine</span>
+              <span style="font-size: 0.75rem; color: #16a34a; background: #f0fdf4; padding: 2px 8px; border-radius: 4px;">UNEB Compliant</span>
+            </div>
+            <img src="smartschoool.ug%20reports.png" alt="SmartSchool.ug Report Engine" class="whole-image open-img-modal" data-src="smartschoool.ug%20reports.png" data-title="SmartSchool.ug - New Lower Secondary CBC Report Engine">
+          </div>
+
+          <!-- Screen 3: TradeDesk POS Desktop -->
+          <div class="whole-image-wrapper" style="margin-bottom: 0;">
+            <div style="font-weight: 700; color: var(--primary-navy); margin-bottom: 0.75rem; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+              <span><i class="fa-solid fa-cash-register" style="color: var(--primary-blue);"></i> TradeDesk POS Desktop Station</span>
+              <span style="font-size: 0.75rem; color: #16a34a; background: #f0fdf4; padding: 2px 8px; border-radius: 4px;">Live in Stores</span>
+            </div>
+            <img src="tradesk%20login%20desktop.png" alt="TradeDesk POS Desktop" class="whole-image open-img-modal" data-src="tradesk%20login%20desktop.png" data-title="TradeDesk POS - Desktop Cashier Station &amp; Shift Login">
+          </div>
+
+          <!-- Screen 4: TradeDesk POS Mobile -->
+          <div class="whole-image-wrapper" style="margin-bottom: 0;">
+            <div style="font-weight: 700; color: var(--primary-navy); margin-bottom: 0.75rem; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+              <span><i class="fa-solid fa-mobile-screen-button" style="color: var(--accent-green);"></i> TradeDesk POS Mobile Cashier</span>
+              <span style="font-size: 0.75rem; color: #16a34a; background: #f0fdf4; padding: 2px 8px; border-radius: 4px;">MoMo Integrated</span>
+            </div>
+            <img src="tradedesk%20pos-mobile.png" alt="TradeDesk POS Mobile Terminal" class="whole-image open-img-modal" data-src="tradedesk%20pos-mobile.png" data-title="TradeDesk POS - Mobile Cashier Terminal View">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROBLEM SOLVING, IDEAS & PARTNERSHIPS SECTION -->
+    <section class="section" style="background: var(--bg-white); border-top: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);">
+      <div class="container">
+        <div class="section-title-wrap">
+          <span class="section-tag">Technology With Purpose</span>
+          <h2 class="section-heading">We Solve Real-World Problems With Technology</h2>
+          <p class="section-subtitle">
+            At AX Technologies Uganda, software isn't just code &mdash; it's an engine to eliminate operational bottlenecks, automate manual records, and drive institutional growth.
+          </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem;">
+          <!-- Card 1: Any Idea to Play -->
+          <div style="background: var(--bg-page); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 2.25rem; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="width: 50px; height: 50px; border-radius: var(--radius-sm); background: #eff6ff; color: var(--primary-blue); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1.25rem;">
+                <i class="fa-solid fa-lightbulb"></i>
+              </div>
+              <h3 style="font-size: 1.35rem; color: var(--primary-navy); margin-bottom: 0.75rem;">Contact Us With Any Idea &bull; We Put It Into Play</h3>
+              <p style="font-size: 0.925rem; color: var(--text-body); line-height: 1.7; margin-bottom: 1.5rem;">
+                Have an innovative software idea, a business workflow challenge, or an institutional requirement? Contact us with any idea and we put it into play. We transform sketches and concepts into robust, reliable, and user-friendly digital systems.
+              </p>
+            </div>
+            <a href="contact.html" class="btn btn-primary btn-sm">
+              <i class="fa-solid fa-paper-plane"></i> Share Your Idea With Us
+            </a>
+          </div>
+
+          <!-- Card 2: Strategic Partnerships -->
+          <div style="background: var(--bg-page); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 2.25rem; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="width: 50px; height: 50px; border-radius: var(--radius-sm); background: #f0fdf4; color: var(--accent-green); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1.25rem;">
+                <i class="fa-solid fa-handshake"></i>
+              </div>
+              <h3 style="font-size: 1.35rem; color: var(--primary-navy); margin-bottom: 0.75rem;">We Allow &amp; Welcome Strategic Partnerships</h3>
+              <p style="font-size: 0.925rem; color: var(--text-body); line-height: 1.7; margin-bottom: 1.5rem;">
+                We strongly believe in collaboration to expand digital impact. We welcome partnerships with schools, businesses, distributors, healthcare networks, and innovators. Together, we co-develop, integrate, and scale software solutions across Uganda and the region.
+              </p>
+            </div>
+            <a href="contact.html" class="btn btn-secondary btn-sm">
+              <i class="fa-solid fa-people-arrows"></i> Partner With Us
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUICK CONTACT CTA -->
+    <section class="section" style="text-align: center;">
+      <div class="container" style="max-width: 800px;">
+        <span class="section-tag">Direct Developer Support</span>
+        <h2 style="font-size: 2rem; color: var(--primary-navy); margin-bottom: 1rem;">Ready to Deploy Our Systems?</h2>
+        <p style="color: var(--text-muted); font-size: 1.05rem; margin-bottom: 2rem;">
+          Connect directly with AX Technologies Uganda in Bushenyi for custom web development, SmartSchool onboarding, or TradeDesk POS deployment.
+        </p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+          <a href="contact.html" class="btn btn-primary">
+            <i class="fa-solid fa-envelope"></i> Send an Inquiry
+          </a>
+          <a href="https://wa.me/256772651444" target="_blank" class="btn btn-secondary" style="border-color: #16a34a; color: #16a34a;">
+            <i class="fa-brands fa-whatsapp"></i> Chat on WhatsApp (0772 651 444)
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand-title">AX <span>TECHNOLOGIES</span> UGANDA</div>
+          <p class="footer-text">
+            Professional web application and enterprise software development firm based in Bushenyi, Uganda.
+          </p>
+          <div style="font-size: 0.85rem; color: #94a3b8;">
+            <i class="fa-solid fa-location-dot" style="color: var(--primary-orange);"></i> Bushenyi, Uganda
+          </div>
+        </div>
+
+        <div>
+          <h4 class="footer-heading">Our Systems</h4>
+          <ul class="footer-menu">
+            <li><a href="smartschool.html">SmartSchool.ug</a></li>
+            <li><a href="tradedesk.html">TradeDesk POS</a></li>
+            <li><a href="systems.html#smartpharma">SmartPharma.ug</a></li>
+            <li><a href="systems.html#smartcare">SmartCare.ug</a></li>
+            <li><a href="systems.html#bizbooks">BizBooks.ug</a></li>
+            <li><a href="pricing.html">SmartSchool Pricing</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-heading">Pages</h4>
+          <ul class="footer-menu">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="smartschool.html">SmartSchool.ug</a></li>
+            <li><a href="tradedesk.html">TradeDesk POS</a></li>
+            <li><a href="systems.html">All Systems</a></li>
+            <li><a href="pricing.html">Pricing Table</a></li>
+            <li><a href="contact.html">Contact Us</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-heading">Contact Details</h4>
+          <ul class="footer-menu">
+            <li><a href="mailto:support@axtechnologies.net">support@axtechnologies.net</a></li>
+            <li><a href="mailto:info@axtechnologies.net">info@axtechnologies.net</a></li>
+            <li><a href="mailto:axtechnologiesug@gmail.com">axtechnologiesug@gmail.com</a></li>
+            <li><a href="tel:+256772651444">0772 651 444</a></li>
+            <li><a href="tel:+256740233225">0740 233 225</a></li>
+            <li style="color: #94a3b8; font-size: 0.85rem;">Bushenyi, Uganda</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bar">
+        <div>
+          &copy; 2026 AX Technologies Uganda. All rights reserved.
+        </div>
+        <div>
+          <a href="privacy-policy.html" style="color: #cbd5e1; margin-left: 1.25rem; text-decoration: underline;">Privacy Policy</a>
+          <a href="terms-of-service.html" style="color: #cbd5e1; margin-left: 1.25rem; text-decoration: underline;">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- PRIVACY & TERMS MODALS -->
+  <div id="privacy-modal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-top">
+        <div class="modal-header-title">Privacy Policy &bull; AX Technologies Uganda</div>
+        <button id="close-privacy-btn" class="modal-close-icon" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-content-area">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <span style="font-size: 0.8rem; background: #eff6ff; color: var(--primary-blue); padding: 2px 8px; border-radius: 4px; font-weight: 700;">Uganda DPPA 2019 Compliant</span>
+          <a href="privacy-policy.html" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Full 10-Section Policy Page</a>
+        </div>
+        <p><strong>Effective Date:</strong> October 2026 &bull; Bushenyi, Uganda</p>
+        <p>At <strong>AX Technologies Uganda</strong>, we operate strictly as an enterprise Software-as-a-Service (SaaS) provider and technology data processor. <strong>We do not sell, rent, monetize, broker, or trade institutional or personal data to third parties, advertisers, or behavioral profiling agencies.</strong></p>
+        
+        <h3>1. Principles of Data Protection</h3>
+        <p>In accordance with Section 3 of the Data Protection and Privacy Act 2019 of Uganda, all processing across SmartSchool.ug, TradeDesk POS, SmartPharma.ug, SmartCare.ug, and BizBooks.ug adheres strictly to lawfulness, purpose specification, data minimization, accuracy, storage limitation, integrity, and absolute confidentiality.</p>
+
+        <h3>2. Categories of Information Processed</h3>
+        <p><strong>SmartSchool.ug:</strong> Student marks, continuous assessment AoI scores, UNEB/CBC grading descriptors, parent contacts for SMS fee receipts and report release alerts, and bursar payment ledgers.</p>
+        <p><strong>TradeDesk POS:</strong> Commercial sales transactions, cashier shift logs, product barcodes, wholesale vs. retail unit pricing, and telecom reference IDs (MTN MoMo and Airtel Money).</p>
+        <p><strong>SmartPharma.ug:</strong> Pharmaceutical drug inventory, batch numbers, manufacture &amp; expiry dates (30/60/90 days alerts), and prescription dispensing records.</p>
+        <p><strong>SmartCare.ug:</strong> Outpatient and inpatient clinical records, triage vital signs, consultation diagnosis codes, lab test requests/results, and bed allocation adhering to doctor-patient confidentiality.</p>
+        <p><strong>BizBooks.ug:</strong> Double-entry journal ledgers, charts of accounts, invoices, expenses, and tax records for URA compliance.</p>
+
+        <h3>3. Multi-Tenant Database Isolation &amp; Security</h3>
+        <p>Every school, clinic, merchant, and enterprise operates on a logically segregated database schema. All network traffic is encrypted via TLS 1.3 / SSL 256-bit encryption. System credentials are cryptographically hashed using salted Argon2/Bcrypt algorithms, and automated offsite snapshots are executed every 24 hours.</p>
+
+        <h3>4. Data Subject Rights Under Uganda Law</h3>
+        <p>Under Sections 24&ndash;30 of the Uganda DPPA 2019, users retain the right of access, rectification, erasure, objection, and guaranteed data portability in standard machine-readable formats (Excel / CSV / SQL dump).</p>
+
+        <div style="margin-top: 1.5rem; text-align: center;">
+          <a href="privacy-policy.html" class="btn btn-primary btn-sm">Read Complete 10-Section Privacy Policy</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="terms-modal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-top">
+        <div class="modal-header-title">Terms of Service &bull; AX Technologies Uganda</div>
+        <button id="close-terms-btn" class="modal-close-icon" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-content-area">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <span style="font-size: 0.8rem; background: #fff7ed; color: var(--primary-orange); padding: 2px 8px; border-radius: 4px; font-weight: 700;">Master Service Agreement</span>
+          <a href="terms-of-service.html" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Full 11-Section Terms Page</a>
+        </div>
+        <p><strong>Last Updated:</strong> October 2026 &bull; Governing Law: Republic of Uganda</p>
+        <p>These Terms of Service constitute a legally binding agreement between your institution or business and <strong>AX Technologies Uganda</strong> (Bushenyi, Uganda), governing the licensing and operational use of SmartSchool.ug, TradeDesk POS, SmartPharma.ug, SmartCare.ug, BizBooks.ug, and custom web applications.</p>
+
+        <h3>1. Subscriptions, Capacity Tiers &amp; Payments</h3>
+        <p>Software subscriptions are billed annually or termly based on contracted capacity (e.g., student enrollment capacity tiers for SmartSchool.ug or POS terminal count for TradeDesk POS). SmartSchool.ug provides a 90-day grace window post-activation to allow institutions to collect termly school fees before settlement.</p>
+
+        <h3>2. System Availability &amp; Technical Support (SLA)</h3>
+        <p>We maintain a 99.5% operational availability standard. Technical support is accessible through direct engineering hotlines (0772 651 444 / 0740 233 225), WhatsApp support desks, and on-site deployment anywhere in Uganda.</p>
+
+        <h3>3. Intellectual Property vs. Client Data Ownership</h3>
+        <p>AX Technologies Uganda retains sole intellectual property ownership over all proprietary software source code, database architectures, grading algorithms, and interface designs. The Subscriber retains absolute, exclusive ownership over all institutional data, student grades, transactions, and medical records.</p>
+
+        <h3>4. Acceptable Use &amp; Offboarding Data Export</h3>
+        <p>Subscribers agree not to decompile, reverse-engineer, bypass licensing thresholds, or misuse the platforms in violation of the Computer Misuse Act 2011. Upon subscription termination, clients are guaranteed a complete database export of their records within 30 days.</p>
+
+        <div style="margin-top: 1.5rem; text-align: center;">
+          <a href="terms-of-service.html" class="btn btn-primary btn-sm">Read Complete 11-Section Terms of Service</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIGHTBOX MODAL -->
+  <div id="image-modal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-top">
+        <div id="image-title" class="modal-header-title">Full Photo View</div>
+        <button id="close-image-btn" class="modal-close-icon" aria-label="Close">&times;</button>
+      </div>
+      <div style="padding: 1.5rem; text-align: center; background: #f8fafc;">
+        <img id="image-element" src="" alt="Full System Screenshot" class="lightbox-img-full">
+      </div>
+    </div>
+  </div>
+
+  <!-- WHATSAPP FLOATING BUBBLE (BOTTOM RIGHT CORNER) -->
+  <div class="whatsapp-float-container">
+    <span class="whatsapp-tooltip">Chat with us on WhatsApp</span>
+    <a href="https://wa.me/256772651444?text=Hello%20AX%20Technologies%20Uganda,%20I%20would%20like%20to%20inquire%20about%20your%20software%20systems." target="_blank" rel="noopener noreferrer" class="whatsapp-float-btn" aria-label="Chat on WhatsApp">
+      <span class="whatsapp-pulse-ring"></span>
+      <i class="fa-brands fa-whatsapp"></i>
+    </a>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+# Robots.txt for AX Technologies Uganda
+# https://axtechnologies.net/
+
+User-agent: *
+Allow: /
+Allow: /favicon.ico
+Allow: /favicon*.png
+Allow: /apple-touch-icon.png
+Allow: /ax-logo.png
+Allow: /smartschool/
+
+User-agent: Googlebot-Image
+Allow: /
+Allow: /favicon.ico
+Allow: /favicon*.png
+Allow: /apple-touch-icon.png
+Allow: /ax-logo.png
+Allow: /smartschool/register
+Allow: /tradedeskpos/
+Allow: /bizbooks/
+Allow: /smartpharma/
+Allow: /smartlearn/
+
+# Protect sensitive backend code, configurations, inquiries and admin controls
+Disallow: /ax-systems/
+Disallow: /vendor/
+Disallow: /composer.json
+Disallow: /composer.lock
+Disallow: /inquiries_log.json
+Disallow: /contact.php
+Disallow: /smartschool/master-admin/
+Disallow: /smartschool/verify-2fa
+Disallow: /smartschool/api/
+Disallow: /bizbooks/api/
+Disallow: /tradedeskpos/api/
+Disallow: /smartpharma/api/
+
+# Sitemap declaration
+Sitemap: https://axtechnologies.net/sitemap.xml
