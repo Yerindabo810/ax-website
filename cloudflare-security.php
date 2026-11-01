@@ -161,10 +161,17 @@ function axEnforceCloudflareLoginProtection(array $config = []): void
     $relPath = ltrim((string) ($config['relPath'] ?? ''), '/');
     $lowerPath = strtolower($relPath);
 
+    $host = strtolower($_SERVER['HTTP_HOST'] ?? '');
+    $isSmartSchool = str_contains($host, 'school.') || str_contains($lowerPath, 'smartschool') || str_contains($scriptDir, 'smartschool');
+
     // 1. Serve /cf-protect.js for this system
     if ($lowerPath === 'cf-protect.js' || str_ends_with($lowerPath, '/cf-protect.js')) {
         header('Content-Type: application/javascript; charset=utf-8');
         header('Cache-Control: no-cache, must-revalidate');
+        if ($isSmartSchool) {
+            echo "// Turnstile disabled for SmartSchool\n(function(){ document.querySelectorAll('.ax-cf-turnstile-wrap, iframe[src*=\"cloudflare.com\"]').forEach(function(el){ el.remove(); }); })();";
+            exit;
+        }
         echo axBuildCloudflareClientScript(AX_CF_TURNSTILE_SITE_KEY);
         exit;
     }
@@ -174,19 +181,8 @@ function axEnforceCloudflareLoginProtection(array $config = []): void
         return;
     }
 
-    // Match login & registration paths (excluding logout or authenticated settings routes)
-    $isProtectedAuthPost = (bool) preg_match(
-        '#(^|/)(login|register|register-school|signup|contact\.php)(/|$)#i',
-        $lowerPath
-    );
-
-    if (!$isProtectedAuthPost) {
-        return;
-    }
-
     // Completely disable Turnstile on SmartSchool per user preference (active on all other systems)
-    $host = strtolower($_SERVER['HTTP_HOST'] ?? '');
-    if (str_contains($host, 'school.') || str_contains($lowerPath, 'smartschool') || str_contains($scriptDir, 'smartschool')) {
+    if ($isSmartSchool) {
         return;
     }
 
@@ -316,7 +312,8 @@ function axBuildCloudflareClientScript(string $siteKey): string
   // Completely disable Turnstile on SmartSchool per user preference
   var currentHost = (window.location.hostname || '').toLowerCase();
   var currentPath = (window.location.pathname || '').toLowerCase();
-  if (currentHost.indexOf('school.') !== -1 || currentPath.indexOf('smartschool') !== -1) {
+  if (currentHost.indexOf('school.') !== -1 || currentPath.indexOf('smartschool') !== -1 || window.__axNoTurnstile) {
+    document.querySelectorAll('.ax-cf-turnstile-wrap, iframe[src*="cloudflare.com"], iframe[src*="turnstile"]').forEach(function (el) { el.remove(); });
     return;
   }
 

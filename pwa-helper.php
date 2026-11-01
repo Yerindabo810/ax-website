@@ -151,7 +151,7 @@ function axHandlePwaRequest(array $config): void
 
     // 3. Serve /{system}/sw.js
     if ($lowerRel === 'sw.js' || $lastSegment === 'sw.js') {
-        $cacheName = 'ax-pwa-' . $systemSlug . '-v2';
+        $cacheName = 'ax-pwa-' . $systemSlug . '-v3';
         $scopeUrl = ($basePath !== '' ? $basePath : '') . '/';
         header('Content-Type: application/javascript; charset=utf-8');
         header('Service-Worker-Allowed: ' . $scopeUrl);
@@ -299,8 +299,9 @@ JS;
     });
   }
 
-  // Load Cloudflare Turnstile Login & Registration Bot Protection
-  if (!window.__axCloudflareProtectLoaded) {
+  // Load Cloudflare Turnstile Login & Registration Bot Protection (Exempt SmartSchool)
+  var isSmartSchool = (SYSTEM_NAME.indexOf('SmartSchool') !== -1 || window.location.hostname.indexOf('school.') !== -1 || window.location.pathname.indexOf('smartschool') !== -1);
+  if (!isSmartSchool && !window.__axCloudflareProtectLoaded && !window.__axNoTurnstile) {
     var cfScript = document.createElement('script');
     cfScript.src = BASE_PATH + '/cf-protect.js';
     cfScript.defer = true;
