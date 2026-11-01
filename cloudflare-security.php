@@ -350,13 +350,41 @@ function axBuildCloudflareClientScript(string $siteKey): string
     return false;
   }
 
-  function renderWidgetInContainer(container, hiddenInput) {
+  function isLocalEnv() {
+    return (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  }
+
+  function setFormButtonsLocked(form, locked, reason) {
+    if (!form) return;
+    if (isLocalEnv()) return;
+    var btns = form.querySelectorAll('button[type="submit"], input[type="submit"]');
+    btns.forEach(function (btn) {
+      if (locked) {
+        btn.disabled = true;
+        btn.dataset.axTurnstileLocked = 'true';
+        btn.style.opacity = '0.55';
+        btn.style.cursor = 'not-allowed';
+        if (reason) btn.setAttribute('title', reason);
+      } else {
+        if (btn.dataset.axTurnstileLocked === 'true') {
+          btn.disabled = false;
+          delete btn.dataset.axTurnstileLocked;
+          btn.style.opacity = '';
+          btn.style.cursor = '';
+          btn.removeAttribute('title');
+        }
+      }
+    });
+  }
+
+  function renderWidgetInContainer(container, hiddenInput, form) {
     if (!window.turnstile || typeof window.turnstile.render !== 'function') {
-      if (turnstileScriptFailed && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      if (turnstileScriptFailed && isLocalEnv()) {
         window.__axTurnstileToken = 'ax-local-offline-bypass';
         if (hiddenInput) hiddenInput.value = 'ax-local-offline-bypass';
+        setFormButtonsLocked(form, false);
       } else {
-        setTimeout(function () { renderWidgetInContainer(container, hiddenInput); }, 250);
+        setTimeout(function () { renderWidgetInContainer(container, hiddenInput, form); }, 250);
       }
       return;
     }
@@ -371,19 +399,22 @@ function axBuildCloudflareClientScript(string $siteKey): string
         callback: function (token) {
           window.__axTurnstileToken = token;
           if (hiddenInput) hiddenInput.value = token;
+          setFormButtonsLocked(form, false);
         },
         'expired-callback': function () {
           window.__axTurnstileToken = '';
           if (hiddenInput) hiddenInput.value = '';
+          setFormButtonsLocked(form, true, 'Cloudflare security check expired. Verifying again...');
         },
         'error-callback': function () {
-          if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          if (isLocalEnv()) {
             window.__axTurnstileToken = 'ax-local-offline-bypass';
             if (hiddenInput) hiddenInput.value = 'ax-local-offline-bypass';
+            setFormButtonsLocked(form, false);
           }
         }
       });
-      activeWidgets.push({ id: widgetId, input: hiddenInput });
+      activeWidgets.push({ id: widgetId, input: hiddenInput, form: form });
     } catch (e) {}
   }
 
@@ -392,6 +423,9 @@ function axBuildCloudflareClientScript(string $siteKey): string
     activeWidgets.forEach(function (w) {
       try {
         window.turnstile.reset(w.id);
+        if (w.form) {
+          setFormButtonsLocked(w.form, true, 'Refreshing security check...');
+        }
       } catch (e) {}
     });
   }
@@ -399,10 +433,21 @@ function axBuildCloudflareClientScript(string $siteKey): string
   function enhanceForms() {
     var forms = document.querySelectorAll('form');
     forms.forEach(function (form) {
-      if (form.dataset.axTurnstileBound === 'true') return;
+      if (form.dataset.axTurnstileBound === 'true') {
+        // If already bound, ensure button status matches token status
+        if (window.__axTurnstileToken) {
+          setFormButtonsLocked(form, false);
+        }
+        return;
+      }
       if (!isAuthOrContactForm(form)) return;
 
       form.dataset.axTurnstileBound = 'true';
+
+      // Keep submit buttons inactive until Cloudflare Turnstile finishes scanning
+      if (!isLocalEnv() && !window.__axTurnstileToken) {
+        setFormButtonsLocked(form, true, 'Cloudflare security verification in progress... Button will activate once verified.');
+      }
 
       // Inject hidden honeypot trap for bots
       var hp = document.createElement('input');
@@ -437,7 +482,25 @@ function axBuildCloudflareClientScript(string $siteKey): string
         form.appendChild(wrapper);
       }
 
-      renderWidgetInContainer(widgetDiv, hiddenInput);
+      // Capture submit to guarantee form is never submitted prematurely
+      form.addEventListener('submit', function (e) {
+        if (isLocalEnv()) return;
+        var token = window.__axTurnstileToken || (hiddenInput ? hiddenInput.value : '');
+        if (!token) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (typeof e.stopImmediatePropagation === 'function') {
+            e.stopImmediatePropagation();
+          }
+          wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          wrapper.style.transition = 'box-shadow 0.3s ease';
+          wrapper.style.boxShadow = '0 0 0 3px rgba(249, 115, 22, 0.55)';
+          setTimeout(function () { wrapper.style.boxShadow = 'none'; }, 2000);
+          return false;
+        }
+      }, true);
+
+      renderWidgetInContainer(widgetDiv, hiddenInput, form);
     });
   }
 
