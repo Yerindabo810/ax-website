@@ -184,6 +184,12 @@ function axEnforceCloudflareLoginProtection(array $config = []): void
         return;
     }
 
+    // Completely disable Turnstile on SmartSchool per user preference (active on all other systems)
+    $host = strtolower($_SERVER['HTTP_HOST'] ?? '');
+    if (str_contains($host, 'school.') || str_contains($lowerPath, 'smartschool') || str_contains($scriptDir, 'smartschool')) {
+        return;
+    }
+
     $remoteIp = (string) ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
     $acceptHeader = strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
     $contentType = strtolower((string) ($_SERVER['CONTENT_TYPE'] ?? ''));
@@ -306,6 +312,13 @@ function axBuildCloudflareClientScript(string $siteKey): string
 (function () {
   if (window.__axCloudflareProtectLoaded) return;
   window.__axCloudflareProtectLoaded = true;
+
+  // Completely disable Turnstile on SmartSchool per user preference
+  var currentHost = (window.location.hostname || '').toLowerCase();
+  var currentPath = (window.location.pathname || '').toLowerCase();
+  if (currentHost.indexOf('school.') !== -1 || currentPath.indexOf('smartschool') !== -1) {
+    return;
+  }
 
   var SITE_KEY = {$siteKeyJson};
   window.__axTurnstileToken = '';
