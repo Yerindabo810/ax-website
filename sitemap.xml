@@ -2,12 +2,10 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 
-  <!-- ========================================================================= -->
-  <!-- 1. MAIN CORPORATE & SOLUTIONS SHOWCASE -->
-  <!-- ========================================================================= -->
+  <!-- 1. Home / Corporate Showcase -->
   <url>
     <loc>https://axtechnologies.net/</loc>
-    <lastmod>2026-10-30</lastmod>
+    <lastmod>2026-11-01</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
@@ -28,9 +26,9 @@
   <!-- 2. SmartSchool.ug: School Management ERP Deep Dive -->
   <url>
     <loc>https://axtechnologies.net/smartschool.html</loc>
-    <lastmod>2026-10-30</lastmod>
+    <lastmod>2026-11-01</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.95</priority>
     <image:image>
       <image:loc>https://axtechnologies.net/smartschool.ug%20dashboard.png</image:loc>
       <image:title>SmartSchool.ug Lower Secondary CBC Report Cards</image:title>
@@ -44,9 +42,9 @@
   <!-- 3. TradeDesk POS: Wholesale & Retail Point of Sale Deep Dive -->
   <url>
     <loc>https://axtechnologies.net/tradedesk.html</loc>
-    <lastmod>2026-10-30</lastmod>
+    <lastmod>2026-11-01</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.95</priority>
     <image:image>
       <image:loc>https://axtechnologies.net/tradesk%20login%20desktop.png</image:loc>
       <image:title>TradeDesk POS Desktop Dashboard</image:title>
@@ -60,9 +58,9 @@
   <!-- 4. Systems Hub: Ecosystem of All Products -->
   <url>
     <loc>https://axtechnologies.net/systems.html</loc>
-    <lastmod>2026-10-30</lastmod>
+    <lastmod>2026-11-01</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.90</priority>
     <image:image>
       <image:loc>https://axtechnologies.net/SmartPharma.ug%20Healthcare%20Logo.png</image:loc>
       <image:title>SmartPharma.ug Pharmacy &amp; Clinic ERP</image:title>
@@ -81,92 +79,36 @@
     </image:image>
   </url>
 
-  <!-- ========================================================================= -->
-  <!-- 2. LIVE SYSTEM APPLICATIONS & PORTALS -->
-  <!-- ========================================================================= -->
-
-  <!-- SmartSchool Central Portal & School Directory -->
+  <!-- 5. Transparent Pricing Plans -->
   <url>
-    <loc>https://axtechnologies.net/smartschool/</loc>
-    <lastmod>2026-10-30</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <loc>https://axtechnologies.net/pricing.html</loc>
+    <lastmod>2026-11-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
   </url>
 
-  <!-- SmartSchool Self-Registration & 14-Day Free Trial Onboarding -->
+  <!-- 6. Contact Us & Request Demo -->
   <url>
-    <loc>https://axtechnologies.net/smartschool/register</loc>
-    <lastmod>2026-10-30</lastmod>
+    <loc>https://axtechnologies.net/contact.html</loc>
+    <lastmod>2026-11-01</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.85</priority>
-  </url>
-
-  <!-- TradeDesk POS Web Application -->
-  <url>
-    <loc>https://axtechnologies.net/tradedeskpos/</loc>
-    <lastmod>2026-10-30</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-
-  <!-- BizBooks Cloud Accounting Web Application -->
-  <url>
-    <loc>https://axtechnologies.net/bizbooks/</loc>
-    <lastmod>2026-10-30</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-
-  <!-- SmartPharma Healthcare & Pharmacy ERP Web Application -->
-  <url>
-    <loc>https://axtechnologies.net/smartpharma/</loc>
-    <lastmod>2026-10-30</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-
-  <!-- SmartLearn E-Learning Portal -->
-  <url>
-    <loc>https://axtechnologies.net/smartlearn/</loc>
-    <lastmod>2026-10-30</lastmod>
-    <changefreq>weekly</changefreq>
     <priority>0.80</priority>
   </url>
 
-  <!-- ========================================================================= -->
-  <!-- 3. PRICING, CONTACT & LEGAL COMPLIANCE -->
-  <!-- ========================================================================= -->
-
-  <!-- Transparent Pricing Plans -->
-  <url>
-    <loc>https://axtechnologies.net/pricing.html</loc>
-    <lastmod>2026-10-30</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Contact Us & Request Demo -->
-  <url>
-    <loc>https://axtechnologies.net/contact.html</loc>
-    <lastmod>2026-10-30</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Official Privacy Policy (Uganda DPPA 2019 Compliant) -->
+  <!-- 7. Official Privacy Policy -->
   <url>
     <loc>https://axtechnologies.net/privacy-policy.html</loc>
-    <lastmod>2026-10-30</lastmod>
+    <lastmod>2026-11-01</lastmod>
     <changefreq>yearly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.50</priority>
   </url>
 
-  <!-- Master Terms of Service -->
+  <!-- 8. Master Terms of Service -->
   <url>
     <loc>https://axtechnologies.net/terms-of-service.html</loc>
-    <lastmod>2026-10-30</lastmod>
+    <lastmod>2026-11-01</lastmod>
     <changefreq>yearly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.50</priority>
   </url>
 
 </urlset>
