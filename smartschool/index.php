@@ -124,10 +124,10 @@ if (!empty($segments[0]) && !in_array(strtolower($segments[0]), $reservedCentral
     $schoolSlug = strtolower($segments[0]);
     $_SERVER['SMARTSCHOOL_TENANT'] = $schoolSlug;
 
-    // If user visits /{school-name} directly, redirect to /{school-name}/login
+    // If user visits /{school-name} or /{school-name}/login, redirect to universal /login
     $prefix = $scriptDir !== '' ? $scriptDir : '';
-    if (count($segments) === 1) {
-        header('Location: ' . $prefix . '/' . $schoolSlug . '/login', true, 302);
+    if (count($segments) === 1 || (count($segments) >= 2 && strtolower($segments[1]) === 'login')) {
+        header('Location: ' . $prefix . '/login', true, 302);
         exit;
     }
 
