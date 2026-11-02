@@ -176,7 +176,7 @@ function axEnforceCloudflareLoginProtection(array $config = []): void
         exit;
     }
 
-    // 2. Only inspect POST requests for login / registration / contact
+    // 2. Only inspect POST requests
     if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
         return;
     }
@@ -184,6 +184,29 @@ function axEnforceCloudflareLoginProtection(array $config = []): void
     // Completely disable Turnstile on SmartSchool per user preference (active on all other systems)
     if ($isSmartSchool) {
         return;
+    }
+
+    // 2A. Skip authenticated requests (Bearer tokens from mobile apps, SPAs, API clients)
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION']
+        ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+        ?? (function_exists('apache_request_headers') ? (apache_request_headers()['Authorization'] ?? null) : null);
+
+    if (!empty($authHeader) && stripos($authHeader, 'Bearer') !== false) {
+        return;
+    }
+
+    // 2B. Skip webhooks and external service callbacks
+    $rawUri = strtolower(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '');
+    if (preg_match('#(webhook|callback|ipn)#i', $lowerPath) || preg_match('#(webhook|callback|ipn)#i', $rawUri)) {
+        return;
+    }
+
+    // 2C. ONLY inspect public authentication, registration, password reset, or contact endpoints
+    $authPattern = '#(^|/)(login|store-login|portal-login|google-login|register|register-store|signup|signin|send-otp|verify-otp|verify-login-otp|forgot-password|reset-password|contact\.php)($|/)#i';
+    $isAuthEndpoint = preg_match($authPattern, $lowerPath) || preg_match($authPattern, $rawUri);
+
+    if (!$isAuthEndpoint) {
+        return; // In-app POS, sales, airtime, data, bills, inventory requests are NOT public auth forms
     }
 
     $remoteIp = (string) ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
