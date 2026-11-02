@@ -18,6 +18,8 @@ $reservedCentral = [
     'index.php',
     'login',
     'logout',
+    'password',
+    'reset',
     'home',
     'register',
     'register-school',
