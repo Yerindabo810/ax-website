@@ -62,6 +62,15 @@ $reservedCentral = [
     'ajax_combination_finder',
     'marksheets',
     'report_cards',
+    'expense_report',
+    'periodic_fees_collection_form',
+    'overall_fees_collection',
+    'termly_fees_collection',
+    'bankreport',
+    'get_reconciliation',
+    'finance_report',
+    'get_sub_category_report',
+    'purchase_report',
 ];
 
 require_once dirname(__DIR__) . '/pwa-helper.php';
@@ -135,9 +144,9 @@ if (!empty($segments[0]) && !in_array(strtolower($segments[0]), $reservedCentral
     $schoolSlug = strtolower($segments[0]);
     $_SERVER['SMARTSCHOOL_TENANT'] = $schoolSlug;
 
-    // If user visits /{school-name} or /{school-name}/login, redirect to universal /login
     $prefix = $scriptDir !== '' ? $scriptDir : '';
-    if (count($segments) === 1 || (count($segments) >= 2 && in_array(strtolower($segments[1]), ['login', 'parent_logout', 'student_parent'], true))) {
+    // Only redirect if specifically hitting a legacy login or parent-logout sub-path
+    if (count($segments) >= 2 && in_array(strtolower($segments[1]), ['login', 'parent_logout', 'student_parent'], true)) {
         header('Location: ' . $prefix . '/login', true, 302);
         exit;
     }
