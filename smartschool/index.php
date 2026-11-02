@@ -130,10 +130,6 @@ if (!empty($segments[0]) && !in_array(strtolower($segments[0]), $reservedCentral
         header('Location: ' . $prefix . '/login', true, 302);
         exit;
     }
-
-    // Adjust SCRIPT_NAME so Laravel's Request::capture() treats /{school-name} as the tenant root
-    $_SERVER['SCRIPT_NAME'] = $prefix . '/' . $segments[0] . '/index.php';
-    $_SERVER['PHP_SELF'] = $prefix . '/' . $segments[0] . '/index.php';
 }
 
 require $appRoot . '/vendor/autoload.php';
