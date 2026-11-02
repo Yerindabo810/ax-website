@@ -168,17 +168,35 @@ if (!$request->ajax() && (stripos($contentType, 'text/html') !== false || $conte
             : $scriptDir;
 
         if ($basePrefix !== '') {
+            $currentTenant = !empty($_SERVER['SMARTSCHOOL_TENANT']) ? strtolower((string)$_SERVER['SMARTSCHOOL_TENANT']) : '';
             $content = preg_replace_callback(
                 '/\b(href|action)=(["\'])\/(?!\/)([^"\']*)\2/i',
-                function (array $m) use ($basePrefix, $scriptDir): string {
+                function (array $m) use ($basePrefix, $scriptDir, $currentTenant): string {
                     $attr = $m[1];
                     $quote = $m[2];
                     $rest = $m[3];
                     $fullPath = '/' . $rest;
-                    // Leave untouched if it already starts with $scriptDir (e.g. /ax-website/smartschool)
-                    if ($scriptDir !== '' && str_starts_with($fullPath, $scriptDir . '/')) {
+
+                    // 1. NEVER prepend if path already starts with $basePrefix
+                    if ($basePrefix !== '' && (str_starts_with($fullPath, $basePrefix . '/') || $fullPath === $basePrefix)) {
                         return $m[0];
                     }
+
+                    // 2. NEVER prepend if path already starts with current tenant slug (prevents duplicate slugs like /ax-secondary-school/ax-secondary-school/...)
+                    if ($currentTenant !== '' && (str_starts_with($fullPath, '/' . $currentTenant . '/') || $fullPath === '/' . $currentTenant)) {
+                        return $m[0];
+                    }
+
+                    // 3. NEVER prepend if path already starts with $scriptDir
+                    if ($scriptDir !== '' && (str_starts_with($fullPath, $scriptDir . '/') || $fullPath === $scriptDir)) {
+                        return $m[0];
+                    }
+
+                    // 4. Do not prefix static asset directories with school tenant slug
+                    if (preg_match('~^/(assets|css|js|images|logoes|cloud-file|vendor|templates|files|uploads)/~i', $fullPath)) {
+                        return $attr . '=' . $quote . ($scriptDir !== '' ? $scriptDir : '') . $fullPath . $quote;
+                    }
+
                     return $attr . '=' . $quote . $basePrefix . '/' . $rest . $quote;
                 },
                 $content
