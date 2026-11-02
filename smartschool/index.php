@@ -51,6 +51,15 @@ $reservedCentral = [
     'qrcodes',
     'svg',
     'templates',
+    'ajax_stream_finder',
+    'ajax_class_finder',
+    'ajax_student_finder',
+    'ajax_optioal_subject_finder',
+    'ajax_subject_finder',
+    'ajax_level_subject_finder',
+    'ajax_class_subject_finder',
+    'ajax_learning_material_finder',
+    'ajax_combination_finder',
 ];
 
 require_once dirname(__DIR__) . '/pwa-helper.php';
@@ -120,7 +129,7 @@ putenv('SESSION_COOKIE=smartschool_session');
 // 3. Detect Path-Based School Slug (/smartschool/{school-name}/login)
 $segments = $relPath === '' ? [] : explode('/', $relPath);
 
-if (!empty($segments[0]) && !in_array(strtolower($segments[0]), $reservedCentral, true)) {
+if (!empty($segments[0]) && !in_array(strtolower($segments[0]), $reservedCentral, true) && !str_starts_with(strtolower($segments[0]), 'ajax_')) {
     $schoolSlug = strtolower($segments[0]);
     $_SERVER['SMARTSCHOOL_TENANT'] = $schoolSlug;
 
