@@ -126,7 +126,7 @@ if (!empty($segments[0]) && !in_array(strtolower($segments[0]), $reservedCentral
 
     // If user visits /{school-name} or /{school-name}/login, redirect to universal /login
     $prefix = $scriptDir !== '' ? $scriptDir : '';
-    if (count($segments) === 1 || (count($segments) >= 2 && strtolower($segments[1]) === 'login')) {
+    if (count($segments) === 1 || (count($segments) >= 2 && in_array(strtolower($segments[1]), ['login', 'parent_logout', 'student_parent'], true))) {
         header('Location: ' . $prefix . '/login', true, 302);
         exit;
     }
