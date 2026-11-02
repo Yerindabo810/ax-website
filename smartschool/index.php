@@ -60,6 +60,8 @@ $reservedCentral = [
     'ajax_class_subject_finder',
     'ajax_learning_material_finder',
     'ajax_combination_finder',
+    'marksheets',
+    'report_cards',
 ];
 
 require_once dirname(__DIR__) . '/pwa-helper.php';
