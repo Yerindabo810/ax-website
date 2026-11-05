@@ -798,21 +798,65 @@ a:hover {
 
 /* Systems Directory Grid */
 .systems-directory-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.25rem;
 }
 
 .system-directory-card {
   background: var(--bg-white);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
-  padding: 2.25rem;
+  padding: 2rem 2.25rem;
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+@media (min-width: 992px) {
+  .system-directory-card {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 2.75rem;
+    align-items: center;
+    padding: 2.5rem;
+  }
+
+  .system-directory-card .dir-card-media-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+  }
+
+  .system-directory-card .dir-card-media-banner,
+  .system-directory-card .media-branding-banner {
+    height: 220px;
+    margin-bottom: 0;
+  }
+
+  .system-directory-card .dir-card-body-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .system-directory-card .features-checklist {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem 1.5rem;
+  }
+
+  .system-directory-card .dir-card-actions {
+    margin-top: 1.25rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
 }
 
 .system-directory-card:hover {
