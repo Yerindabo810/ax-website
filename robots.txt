@@ -18,8 +18,7 @@ Allow: /ax-logo.png
 Allow: /smartschool/register
 Allow: /tradedeskpos/
 Allow: /bizbooks/
-Allow: /smartpharma/
-Allow: /smartlearn/
+Allow: /campusdesk/
 
 # Protect sensitive backend code, configurations, inquiries and admin controls
 Disallow: /ax-systems/
@@ -33,7 +32,7 @@ Disallow: /smartschool/verify-2fa
 Disallow: /smartschool/api/
 Disallow: /bizbooks/api/
 Disallow: /tradedeskpos/api/
-Disallow: /smartpharma/api/
+Disallow: /campusdesk/api/
 
 # Sitemap declaration
 Sitemap: https://axtechnologies.net/sitemap.xml

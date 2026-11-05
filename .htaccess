@@ -53,10 +53,7 @@ DirectoryIndex index.html index.php
   RewriteRule ^school(?:/(.*))?$ https://school.axtechnologies.net/$1 [R=301,L,NE]
 
   RewriteCond %{HTTP_HOST} ^(www\.)?axtechnologies\.net$ [NC]
-  RewriteRule ^smartpharma(?:/(.*))?$ https://pharma.axtechnologies.net/$1 [R=301,L,NE]
-
-  RewriteCond %{HTTP_HOST} ^(www\.)?axtechnologies\.net$ [NC]
-  RewriteRule ^pharma(?:/(.*))?$ https://pharma.axtechnologies.net/$1 [R=301,L,NE]
+  RewriteRule ^campusdesk(?:/(.*))?$ https://campusdesk.axtechnologies.net/$1 [R=301,L,NE]
 
   # ----------------------------------------------------------------------------
   # 3. PROTECT INTERNAL FOLDERS AND SENSITIVE FILES (403 Forbidden)

@@ -62,20 +62,12 @@
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
     <image:image>
-      <image:loc>https://axtechnologies.net/SmartPharma.ug%20Healthcare%20Logo.png</image:loc>
-      <image:title>SmartPharma.ug Pharmacy &amp; Clinic ERP</image:title>
-    </image:image>
-    <image:image>
-      <image:loc>https://axtechnologies.net/SmartCare.ug%20Healthcare%20Emblem.png</image:loc>
-      <image:title>SmartCare.ug Hospital Management and EMR</image:title>
+      <image:loc>https://axtechnologies.net/CampusDesk%20Education%20Logo.png</image:loc>
+      <image:title>CampusDesk Multi-Campus ERP &amp; Student Portal</image:title>
     </image:image>
     <image:image>
       <image:loc>https://axtechnologies.net/BizBooks.ug%20Growth%20Emblem.png</image:loc>
       <image:title>BizBooks.ug Cloud Accounting &amp; Invoicing</image:title>
-    </image:image>
-    <image:image>
-      <image:loc>https://axtechnologies.net/SmartLearn.ug%20Education%20Logo.png</image:loc>
-      <image:title>SmartLearn.ug E-Learning Platform</image:title>
     </image:image>
   </url>
 

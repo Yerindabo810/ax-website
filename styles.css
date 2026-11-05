@@ -579,12 +579,8 @@ a:hover {
   overflow: hidden;
 }
 
-.media-branding-banner.pharma {
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-}
-
-.media-branding-banner.care {
-  background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+.media-branding-banner.campusdesk {
+  background: linear-gradient(135deg, #f0fdfa 0%, #e0f2fe 100%);
 }
 
 .media-branding-banner.books {

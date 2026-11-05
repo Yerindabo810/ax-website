@@ -35,8 +35,7 @@ function axHandlePwaRequest(array $config): void
             'books'        => 'books.axtechnologies.net',
             'smartschool'  => 'school.axtechnologies.net',
             'school'       => 'school.axtechnologies.net',
-            'smartpharma'  => 'pharma.axtechnologies.net',
-            'pharma'       => 'pharma.axtechnologies.net',
+            'campusdesk'   => 'campusdesk.axtechnologies.net',
         ];
         if (isset($subdomainMap[$systemSlug])) {
             $targetSubdomain = $subdomainMap[$systemSlug];
@@ -47,7 +46,7 @@ function axHandlePwaRequest(array $config): void
     }
 
     $host = strtolower($_SERVER['HTTP_HOST'] ?? '');
-    $isSubdomainRoot = ($scriptDir === '') || preg_match('/^(pos|tradedesk|books|bizbooks|school|smartschool|pharma|smartpharma)\./i', $host);
+    $isSubdomainRoot = ($scriptDir === '') || preg_match('/^(pos|tradedesk|books|bizbooks|school|smartschool|campusdesk)\./i', $host);
     $basePath = $isSubdomainRoot ? '' : ($scriptDir !== '' ? $scriptDir : '/' . $systemSlug);
     $lowerRel = strtolower($relPath);
 
@@ -437,7 +436,7 @@ function axInjectPwaTags(string $html, string $scriptDir, string $themeColor = '
     }
 
     $host = strtolower($_SERVER['HTTP_HOST'] ?? '');
-    $isSubdomain = preg_match('/^(pos|tradedesk|books|bizbooks|school|smartschool|pharma|smartpharma)\./i', $host);
+    $isSubdomain = preg_match('/^(pos|tradedesk|books|bizbooks|school|smartschool|campusdesk)\./i', $host);
     $basePath = ($isSubdomain || $scriptDir === '') ? '' : $scriptDir;
 
     $manifestHref = ($basePath !== '' ? $basePath : '') . '/manifest.json' . ($tenant !== '' ? ('?tenant=' . urlencode($tenant)) : '');
