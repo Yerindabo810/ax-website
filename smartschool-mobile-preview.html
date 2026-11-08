@@ -732,6 +732,9 @@
         <button class="sim-btn" id="btnSimLogin1" onclick="showSimScreen('login1')">1. Login (Lookup)</button>
         <button class="sim-btn" id="btnSimLogin2" onclick="showSimScreen('login2')">2. Login (Password)</button>
         <button class="sim-btn active" id="btnSimApp" onclick="showSimScreen('app')">3. Main App (5 Tabs)</button>
+        <button class="sim-btn" style="border:1px solid rgba(20,184,166,0.6);color:#5eead4;" onclick="triggerSimLessonPopup()">
+            <i class="fa-solid fa-bell"></i> Test 10-Min Lesson Popup
+        </button>
         <button class="sim-btn offline-sim" id="btnSimOffline" onclick="toggleSimOffline()">
             <i class="fa-solid fa-wifi"></i> Simulate Offline
         </button>
@@ -772,6 +775,35 @@
             <div id="simToast" class="toast-pill">
                 <i class="fa-solid fa-circle-check" style="color:#22c55e;"></i>
                 <span id="simToastText">Saved!</span>
+            </div>
+
+            <!-- 10-MINUTE PRE-LESSON POPUP NOTIFICATION BANNER -->
+            <div id="simLessonPopup" style="position:absolute;top:66px;left:12px;right:12px;background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#fff;border:1.5px solid #14b8a6;border-radius:16px;padding:13px;z-index:2600;display:none;box-shadow:0 16px 32px rgba(0,0,0,0.45);">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
+                    <div style="display:flex;align-items:center;gap:9px;">
+                        <div style="width:36px;height:36px;border-radius:10px;background:rgba(20,184,166,0.2);border:1px solid #14b8a6;color:#2dd4bf;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">
+                            <i class="fa-solid fa-bell"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:0.64rem;font-weight:800;color:#2dd4bf;text-transform:uppercase;letter-spacing:0.04em;">
+                                <i class="fa-solid fa-clock"></i> Upcoming Lesson in 10 Mins
+                            </div>
+                            <div style="font-size:0.9rem;font-weight:800;color:#fff;" id="simPopupSubj">Mathematics</div>
+                        </div>
+                    </div>
+                    <button type="button" onclick="document.getElementById('simLessonPopup').style.display='none'" style="background:rgba(255,255,255,0.1);border:none;color:#cbd5e1;width:24px;height:24px;border-radius:50%;cursor:pointer;">&times;</button>
+                </div>
+                <div style="font-size:0.74rem;color:#cbd5e1;margin-bottom:10px;padding-left:45px;" id="simPopupMeta">
+                    <i class="fa-solid fa-chalkboard" style="color:#2dd4bf;margin-right:4px;"></i> Senior 2 (North) &bull; <strong>08:00 AM - 08:40 AM</strong>
+                </div>
+                <div style="display:flex;gap:6px;padding-left:45px;">
+                    <button type="button" onclick="document.getElementById('simLessonPopup').style.display='none';selectTab('attendance');" style="flex:1;background:#0d9488;color:#fff;border:none;border-radius:8px;padding:7px 10px;font-size:0.72rem;font-weight:800;cursor:pointer;">
+                        <i class="fa-solid fa-clipboard-user"></i> Take Attendance
+                    </button>
+                    <button type="button" onclick="document.getElementById('simLessonPopup').style.display='none'" style="background:rgba(255,255,255,0.12);color:#e2e8f0;border:none;border-radius:8px;padding:7px 12px;font-size:0.72rem;font-weight:700;cursor:pointer;">
+                        Dismiss
+                    </button>
+                </div>
             </div>
 
             <!-- =================================================
@@ -1229,15 +1261,40 @@
                             </select>
                         </div>
 
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
                             <div>
-                                <label class="f-label">Time Begins</label>
-                                <input type="time" id="simTtStart" class="f-input" style="padding:9px 11px;font-size:0.8rem;" value="11:00">
+                                <label class="f-label">When Lesson Begins</label>
+                                <input type="time" id="simTtStart" class="f-input" style="padding:9px 11px;font-size:0.8rem;" value="08:00" oninput="simAutoCalcEndTime()" onchange="simAutoCalcEndTime()">
                             </div>
                             <div>
-                                <label class="f-label">Time Ends</label>
-                                <input type="time" id="simTtEnd" class="f-input" style="padding:9px 11px;font-size:0.8rem;" value="11:45">
+                                <label class="f-label">Lesson Period (Mins)</label>
+                                <select id="simTtDuration" class="f-input" style="padding:9px 11px;font-size:0.8rem;" onchange="simSelectDuration(this.value)">
+                                    <option value="40" selected>40 Mins (Single)</option>
+                                    <option value="60">60 Mins (1 Hr)</option>
+                                    <option value="80">80 Mins (Double)</option>
+                                    <option value="120">120 Mins (2 Hrs)</option>
+                                    <option value="160">160 Mins (Quad)</option>
+                                </select>
                             </div>
+                        </div>
+
+                        <div style="margin-bottom:8px;">
+                            <label class="f-label">Tap Duration (Auto-fills End Time)</label>
+                            <div style="display:flex;gap:5px;flex-wrap:wrap;" id="simDurChips">
+                                <button type="button" class="day-chip active" data-mins="40" onclick="simSelectDuration(40)">40m</button>
+                                <button type="button" class="day-chip" data-mins="60" onclick="simSelectDuration(60)">60m</button>
+                                <button type="button" class="day-chip" data-mins="80" onclick="simSelectDuration(80)">80m</button>
+                                <button type="button" class="day-chip" data-mins="120" onclick="simSelectDuration(120)">120m</button>
+                                <button type="button" class="day-chip" data-mins="160" onclick="simSelectDuration(160)">160m</button>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom:12px;">
+                            <label class="f-label" style="display:flex;justify-content:space-between;">
+                                <span>Ends (Auto-Calculated)</span>
+                                <span id="simAutoRangeLbl" style="color:var(--teal);font-weight:800;">8:00 AM - 8:40 AM</span>
+                            </label>
+                            <input type="time" id="simTtEnd" class="f-input" style="padding:9px 11px;font-size:0.8rem;background:var(--teal-light);border-color:#99f6e4;font-weight:800;color:var(--teal);" value="08:40" readonly>
                         </div>
 
                         <button type="button" class="btn-teal" onclick="saveSimLesson(false)">
@@ -1415,17 +1472,44 @@
             renderSimTimetable();
         }
 
+        function simAutoCalcEndTime() {
+            var startVal = document.getElementById('simTtStart').value || '08:00';
+            var durMins = parseInt(document.getElementById('simTtDuration').value, 10) || 40;
+            var parts = startVal.split(':');
+            var totalMins = (parseInt(parts[0], 10) * 60) + parseInt(parts[1], 10) + durMins;
+            var endH = Math.floor(totalMins / 60) % 24;
+            var endM = totalMins % 60;
+            var endStr = (endH < 10 ? '0' + endH : '' + endH) + ':' + (endM < 10 ? '0' + endM : '' + endM);
+            document.getElementById('simTtEnd').value = endStr;
+            var lbl = document.getElementById('simAutoRangeLbl');
+            if (lbl) lbl.textContent = format12h(startVal) + ' - ' + format12h(endStr) + ' (' + durMins + 'm)';
+        }
+
+        function simSelectDuration(mins) {
+            var m = parseInt(mins, 10) || 40;
+            document.getElementById('simTtDuration').value = String(m);
+            document.querySelectorAll('#simDurChips .day-chip').forEach(function(c) {
+                c.classList.toggle('active', parseInt(c.getAttribute('data-mins'), 10) === m);
+            });
+            simAutoCalcEndTime();
+        }
+
+        function triggerSimLessonPopup() {
+            showSimScreen('app');
+            var list = simLessons[simCurrentDay] || [];
+            var first = list.length ? list[0] : { subject: 'Mathematics', cls: 'Senior 2 (North)', start: '08:00', end: '08:40' };
+            document.getElementById('simPopupSubj').textContent = first.subject;
+            document.getElementById('simPopupMeta').innerHTML = '<i class="fa-solid fa-chalkboard" style="color:#2dd4bf;margin-right:4px;"></i> ' + first.cls + ' &bull; <strong>' + format12h(first.start) + ' - ' + format12h(first.end) + '</strong>';
+            document.getElementById('simLessonPopup').style.display = 'block';
+        }
+
         function saveSimLesson(keepOpen) {
+            simAutoCalcEndTime();
             var day = document.getElementById('simTtDay').value;
             var subj = document.getElementById('simTtSubject').value;
             var cls = document.getElementById('simTtClass').value;
             var start = document.getElementById('simTtStart').value;
             var end = document.getElementById('simTtEnd').value;
-
-            if (!start || !end || end <= start) {
-                popToast('End time must be after Start time');
-                return;
-            }
 
             if (!simLessons[day]) simLessons[day] = [];
             simLessons[day].push({ subject: subj, cls: cls, start: start, end: end });
@@ -1434,6 +1518,7 @@
 
             if (keepOpen) {
                 document.getElementById('simTtStart').value = end;
+                simAutoCalcEndTime();
             } else {
                 closeDrawer('addLessonDrawer');
             }
