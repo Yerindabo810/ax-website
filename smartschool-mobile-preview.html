@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartSchool.ug Android App — Interactive UI Preview</title>
+    <title>SmartSchool.ug — Android Mobile App Interactive Preview</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,62 +12,109 @@
         :root {
             --teal: #0d9488;
             --teal-dark: #0f766e;
+            --teal-light: #f0fdfa;
             --navy: #0f172a;
             --blue: #2563eb;
             --bg: #f1f5f9;
+            --card: #ffffff;
+            --input-bg: #f8fafc;
             --border: #e2e8f0;
+            --text: #0f172a;
+            --subtext: #475569;
+            --muted: #64748b;
+            --green: #16a34a;
+            --red: #dc2626;
+            --amber: #d97706;
         }
+
+        .phone-screen[data-theme="dark"] {
+            --bg: #0b1120;
+            --card: #1e293b;
+            --input-bg: #0f172a;
+            --border: #334155;
+            --navy: #f8fafc;
+            --text: #f8fafc;
+            --subtext: #cbd5e1;
+            --muted: #94a3b8;
+            --teal-light: rgba(13, 148, 136, 0.18);
+        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: #0f172a;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: radial-gradient(circle at 50% 0%, #1e293b 0%, #090d16 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 20px 12px;
-            color: #0f172a;
+            padding: 20px 14px 40px;
+            color: var(--text);
         }
+
         /* Top Simulator Switcher Bar */
         .sim-toolbar {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.14);
-            padding: 6px 10px;
-            border-radius: 999px;
-            margin-bottom: 16px;
             flex-wrap: wrap;
+            align-items: center;
             justify-content: center;
+            gap: 8px;
+            margin-bottom: 18px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            padding: 8px 12px;
+            border-radius: 999px;
+            backdrop-filter: blur(12px);
         }
+
+        .sim-label {
+            color: #94a3b8;
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 0 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
         .sim-btn {
             background: transparent;
-            color: #cbd5e1;
+            color: #e2e8f0;
             border: none;
-            padding: 7px 14px;
+            padding: 7px 13px;
             border-radius: 999px;
             font-size: 0.78rem;
             font-weight: 700;
             cursor: pointer;
             font-family: inherit;
-            transition: all 0.15s;
+            transition: all 0.15s ease;
         }
+
         .sim-btn.active {
             background: var(--teal);
             color: #ffffff;
+            box-shadow: 0 2px 10px rgba(13, 148, 136, 0.4);
         }
 
-        /* Android Phone Frame */
+        .sim-btn.offline-sim {
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            color: #fca5a5;
+        }
+
+        .sim-btn.offline-sim.active {
+            background: #dc2626;
+            color: #ffffff;
+            border-color: #dc2626;
+        }
+
+        /* Phone Frame */
         .phone-frame {
-            width: 390px;
+            width: 392px;
             max-width: 100%;
-            height: 780px;
-            background: #f1f5f9;
-            border-radius: 38px;
+            height: 815px;
+            background: var(--bg);
+            border-radius: 42px;
             border: 10px solid #1e293b;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.55), 0 0 0 2px #334155;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55), 0 0 0 2px #334155;
             position: relative;
             overflow: hidden;
             display: flex;
@@ -77,59 +124,121 @@
         /* Android Status Bar */
         .android-statusbar {
             height: 28px;
-            background: #ffffff;
-            padding: 0 18px;
+            background: #0f172a;
+            color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            padding: 0 18px;
             font-size: 0.7rem;
-            font-weight: 700;
-            color: #334155;
+            font-weight: 600;
             flex-shrink: 0;
-            z-index: 50;
+            z-index: 1200;
+        }
+
+        /* Screen Viewport */
+        .phone-screen {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg);
+            color: var(--text);
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        /* OFFLINE BLOCKING OVERLAY INSIDE PHONE */
+        .offline-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(5px);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .offline-overlay.active {
+            display: flex;
+        }
+
+        .offline-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px 18px;
+            text-align: center;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .offline-icon-circle {
+            width: 62px;
+            height: 62px;
+            border-radius: 50%;
+            background: #fee2e2;
+            color: #dc2626;
+            font-size: 1.55rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
         }
 
         /* =====================================================
-           SCREEN A: REAL SYSTEM 2-STEP LOGIN AUTH SCREEN
+           SCREEN A: REAL 2-STEP LOGIN AUTH SCREEN
            ===================================================== */
         #screen-login {
             flex: 1;
-            background: radial-gradient(circle at 50% 0%, #ffffff 0%, #f1f5f9 100%);
+            overflow-y: auto;
+            padding: 24px 18px;
             display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px 18px;
-            overflow-y: auto;
+            background: var(--bg);
         }
-        #screen-login.active { display: flex; }
+
+        #screen-login.active {
+            display: flex;
+        }
 
         .login-logo {
-            height: 68px;
-            object-fit: contain;
+            height: 62px;
             margin-bottom: 8px;
+            object-fit: contain;
         }
-        .login-pill {
+
+        .android-badge {
             background: #ccfbf1;
             color: #0f766e;
             font-size: 0.68rem;
             font-weight: 800;
-            padding: 4px 10px;
+            padding: 4px 11px;
             border-radius: 999px;
             text-transform: uppercase;
-            margin-bottom: 18px;
+            letter-spacing: 0.03em;
+            margin-bottom: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
+
         .auth-card {
-            background: #ffffff;
+            background: var(--card);
             width: 100%;
-            border-radius: 18px;
-            padding: 26px 20px 20px;
-            box-shadow: 0 10px 25px -5px rgba(15,23,42,0.07);
-            border: 1px solid #e2e8f0;
+            padding: 26px 20px 22px;
+            border-radius: 20px;
+            box-shadow: 0 12px 30px -6px rgba(15, 23, 42, 0.08);
+            border: 1px solid var(--border);
             text-align: center;
             position: relative;
             overflow: hidden;
         }
+
         .auth-card::before {
             content: '';
             position: absolute;
@@ -137,52 +246,76 @@
             height: 4px;
             background: linear-gradient(90deg, #0d9488 0%, #2563eb 100%);
         }
+
         .auth-title {
             font-size: 1.45rem;
-            font-weight: 700;
+            font-weight: 800;
             color: var(--teal);
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
+
         .auth-sub {
             font-size: 0.8rem;
-            color: #64748b;
-            margin-bottom: 18px;
+            color: var(--muted);
+            margin-bottom: 20px;
+            line-height: 1.45;
         }
-        .f-group { text-align: left; margin-bottom: 14px; position: relative; }
-        .f-label { display: block; font-size: 0.74rem; font-weight: 600; color: #475569; margin-bottom: 5px; }
+
+        .f-group {
+            text-align: left;
+            margin-bottom: 14px;
+            position: relative;
+        }
+
+        .f-label {
+            display: block;
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: var(--subtext);
+            margin-bottom: 5px;
+        }
+
         .f-input {
             width: 100%;
-            background: #f8fafc;
-            border: 1.5px solid #cbd5e1;
-            border-radius: 10px;
-            padding: 12px 14px;
+            background: var(--input-bg);
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            padding: 13px 14px;
             font-size: 0.9rem;
             font-family: inherit;
+            color: var(--navy);
             outline: none;
         }
-        .f-input:focus { border-color: var(--teal); background: #fff; }
+
+        .f-input:focus {
+            border-color: var(--teal);
+        }
+
         .btn-teal {
             width: 100%;
             background: var(--teal);
-            color: #fff;
+            color: #ffffff;
             border: none;
-            border-radius: 10px;
-            padding: 13px;
-            font-size: 0.9rem;
+            border-radius: 12px;
+            padding: 13px 18px;
+            font-size: 0.92rem;
             font-weight: 700;
+            font-family: inherit;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(13,148,136,0.25);
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.28);
+            margin-top: 8px;
         }
-        .matched-badge {
-            background: #f0fdfa;
+
+        .matched-school-badge {
+            background: var(--teal-light);
             border: 1px solid #99f6e4;
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 10px 12px;
-            margin-bottom: 14px;
+            margin-bottom: 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -190,640 +323,1255 @@
         }
 
         /* =====================================================
-           SCREEN B: MAIN MOBILE APP SHELL
+           SCREEN B: MAIN APP WORKSPACE (Top Bar + 5 Bottom Tabs)
            ===================================================== */
         #screen-app {
             flex: 1;
             display: none;
             flex-direction: column;
             overflow: hidden;
-            position: relative;
         }
-        #screen-app.active { display: flex; }
 
-        /* Top Bar: School Logo Left | Bell & Profile Right */
+        #screen-app.active {
+            display: flex;
+        }
+
+        /* Top Bar: School Logo Left | Notification & Profile Right */
         .app-topbar {
-            height: 58px;
-            background: #ffffff;
+            height: 60px;
+            background: var(--card);
             border-bottom: 1px solid var(--border);
-            padding: 0 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            padding: 0 14px;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .school-logo-box {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: #f0fdfa;
+            border: 1px solid #99f6e4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--teal);
+            font-weight: 900;
+            font-size: 0.95rem;
             flex-shrink: 0;
         }
-        .topbar-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
-        .school-logo {
-            width: 38px; height: 38px;
-            border-radius: 10px;
-            object-fit: contain;
-            background: #f8fafc;
-            border: 1px solid var(--border);
-            padding: 3px;
+
+        .school-title {
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: var(--navy);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        .school-title { font-size: 0.86rem; font-weight: 800; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 185px; }
-        .school-term { font-size: 0.68rem; font-weight: 600; color: var(--teal); }
-        .topbar-right { display: flex; align-items: center; gap: 8px; }
+
+        .school-term {
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: var(--teal);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .icon-btn {
             position: relative;
-            width: 38px; height: 38px;
+            width: 38px;
+            height: 38px;
             border-radius: 11px;
-            background: #f8fafc;
+            background: var(--input-bg);
             border: 1px solid var(--border);
-            color: #334155;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-        }
-        .badge-dot {
-            position: absolute; top: -3px; right: -3px;
-            background: #ef4444; color: #fff;
-            font-size: 0.62rem; font-weight: 800;
-            width: 17px; height: 17px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            border: 2px solid #fff;
-        }
-        .profile-btn {
-            width: 38px; height: 38px;
-            border-radius: 11px;
-            background: linear-gradient(135deg, #0d9488, #0f766e);
-            color: #fff; border: none;
-            font-size: 0.8rem; font-weight: 800;
+            color: var(--subtext);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
             cursor: pointer;
         }
 
-        /* Scrollable Viewport */
-        .app-viewport {
+        .notif-dot {
+            position: absolute;
+            top: -3px;
+            right: -3px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.6rem;
+            font-weight: 800;
+            width: 17px;
+            height: 17px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--card);
+        }
+
+        .profile-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 11px;
+            background: linear-gradient(135deg, #0d9488, #0f766e);
+            color: #fff;
+            border: none;
+            font-weight: 800;
+            font-size: 0.82rem;
+            cursor: pointer;
+        }
+
+        /* Scrollable Tab Body */
+        .app-body {
             flex: 1;
             overflow-y: auto;
             padding: 12px;
         }
 
-        .tab-view { display: none; }
-        .tab-view.active { display: block; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
 
         /* Bottom Nav (5 Tabs: Home, Attendance, Record Marks, Timetable, Settings) */
-        .app-bottomnav {
+        .app-bottom-nav {
             height: 64px;
-            background: #ffffff;
+            background: var(--card);
             border-top: 1px solid var(--border);
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             flex-shrink: 0;
+            z-index: 100;
         }
-        .b-tab {
-            background: none; border: none;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
+
+        .b-nav-item {
+            background: none;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             gap: 3px;
-            color: #64748b;
+            color: var(--muted);
+            font-family: inherit;
             font-size: 0.64rem;
             font-weight: 600;
-            font-family: inherit;
             cursor: pointer;
             position: relative;
         }
-        .b-tab i { font-size: 1.08rem; }
-        .b-tab.active { color: var(--teal); font-weight: 800; }
-        .b-tab.active::before {
-            content: ''; position: absolute; top: 0;
-            width: 28px; height: 3px;
-            background: var(--teal); border-radius: 0 0 4px 4px;
+
+        .b-nav-item i { font-size: 1.08rem; }
+
+        .b-nav-item.active {
+            color: var(--teal);
+            font-weight: 800;
         }
 
-        /* Cards & Elements inside Viewport */
-        .hero-box {
+        .b-nav-item.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 28px;
+            height: 3px;
+            background: var(--teal);
+            border-radius: 0 0 4px 4px;
+        }
+
+        /* UI Components inside Tabs */
+        .hero-card {
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #fff; border-radius: 16px;
-            padding: 15px; margin-bottom: 12px;
+            color: #fff;
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 12px;
         }
-        .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
-        .kpi-box { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 6px; text-align: center; }
-        .q-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .kpi-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 8px;
+            text-align: center;
+        }
+
+        .kpi-num { font-size: 1.15rem; font-weight: 800; color: var(--navy); }
+        .kpi-txt { font-size: 0.65rem; color: var(--muted); font-weight: 600; margin-top: 2px; }
+
+        .q-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
         .q-card {
-            background: #fff; border: 1px solid var(--border);
-            border-radius: 12px; padding: 11px;
-            display: flex; align-items: center; gap: 10px;
-            cursor: pointer; text-align: left; font-family: inherit;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 11px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            text-align: left;
+            font-family: inherit;
         }
-        .q-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .card-box { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-bottom: 10px; }
-        .row-student {
-            background: #fff; border: 1px solid var(--border);
-            border-radius: 12px; padding: 10px 12px;
+
+        .q-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .m-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .student-row {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 12px;
             margin-bottom: 7px;
-            display: flex; align-items: center; justify-content: space-between;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
+
         .att-btn {
-            width: 32px; height: 32px; border-radius: 8px;
-            border: 1.5px solid #cbd5e1; background: #f8fafc;
-            font-weight: 800; font-size: 0.72rem; cursor: pointer;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1.5px solid var(--border);
+            background: var(--input-bg);
+            font-weight: 800;
+            font-size: 0.74rem;
+            color: var(--subtext);
+            cursor: pointer;
         }
+
         .att-btn.P { background: #dcfce7; border-color: #16a34a; color: #15803d; }
         .att-btn.A { background: #fee2e2; border-color: #dc2626; color: #b91c1c; }
         .att-btn.L { background: #fef3c7; border-color: #d97706; color: #b45309; }
 
-        /* Slide-up Drawer inside Phone Frame */
+        /* 60-Min Window Banner */
+        .att-banner {
+            border-radius: 10px;
+            padding: 9px 11px;
+            margin-bottom: 9px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            line-height: 1.35;
+        }
+        .att-banner.new { background: rgba(13, 148, 136, 0.12); border: 1px solid #99f6e4; color: #0f766e; }
+        .att-banner.edit { background: #fef3c7; border: 1px solid #fde68a; color: #92400e; }
+        .att-banner.locked { background: #dbeafe; border: 1px solid #bfdbfe; color: #1e40af; }
+
+        .score-inp {
+            width: 60px;
+            height: 34px;
+            text-align: center;
+            font-weight: 800;
+            font-size: 0.85rem;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            background: var(--input-bg);
+            color: var(--navy);
+        }
+
+        .day-chips {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+            overflow-x: auto;
+        }
+
+        .day-chip {
+            flex: 1;
+            padding: 7px 6px;
+            border-radius: 9px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .day-chip.active {
+            background: var(--teal);
+            color: #fff;
+            border-color: var(--teal);
+        }
+
+        /* Settings Row & Theme Switch */
+        .s-row {
+            width: 100%;
+            background: none;
+            border: none;
+            border-bottom: 1px solid var(--border);
+            padding: 12px 2px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: var(--navy);
+            font-size: 0.82rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            text-align: left;
+        }
+        .s-row:last-child { border-bottom: none; }
+
+        .theme-switch {
+            position: relative;
+            width: 42px;
+            height: 24px;
+            background: #cbd5e1;
+            border-radius: 999px;
+            transition: background 0.2s ease;
+            display: inline-block;
+        }
+        .theme-switch.active { background: var(--teal); }
+        .theme-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px; left: 3px;
+            width: 18px; height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+        }
+        .theme-switch.active::after { transform: translateX(18px); }
+
+        /* Slide-up Drawer inside Phone */
         .drawer-overlay {
-            position: absolute; inset: 0;
-            background: rgba(15,23,42,0.45);
-            z-index: 90; display: none;
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            z-index: 500;
+            display: none;
             align-items: flex-end;
         }
+
         .drawer-overlay.open { display: flex; }
-        .drawer-box {
-            background: #fff; width: 100%;
-            border-radius: 20px 20px 0 0;
-            padding: 16px; max-height: 75%;
+
+        .drawer-sheet {
+            width: 100%;
+            max-height: 85%;
             overflow-y: auto;
+            background: var(--card);
+            color: var(--text);
+            border-radius: 20px 20px 0 0;
+            padding: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .toast-pill {
+            position: absolute;
+            top: 68px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0f172a;
+            color: #fff;
+            font-size: 0.74rem;
+            font-weight: 700;
+            padding: 8px 14px;
+            border-radius: 999px;
+            z-index: 2500;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+            white-space: nowrap;
         }
     </style>
 </head>
 <body>
 
-    <!-- Top Switcher so User can inspect Login Auth Screens vs Main App Screens -->
+    <!-- Top Simulator Controls -->
     <div class="sim-toolbar">
-        <button class="sim-btn" id="btnShowLogin1" onclick="showLoginStep(1)">
-            <i class="fa-solid fa-key"></i> 1. Login (Step 1: Lookup)
-        </button>
-        <button class="sim-btn" id="btnShowLogin2" onclick="showLoginStep(2)">
-            <i class="fa-solid fa-lock"></i> 2. Login (Step 2: Password)
-        </button>
-        <button class="sim-btn active" id="btnShowApp" onclick="showMainApp()">
-            <i class="fa-solid fa-mobile-screen"></i> 3. Main App (Top Bar + 5 Bottom Tabs)
+        <span class="sim-label"><i class="fa-brands fa-android"></i> Preview Screen:</span>
+        <button class="sim-btn" id="btnSimLogin1" onclick="showSimScreen('login1')">1. Login (Lookup)</button>
+        <button class="sim-btn" id="btnSimLogin2" onclick="showSimScreen('login2')">2. Login (Password)</button>
+        <button class="sim-btn active" id="btnSimApp" onclick="showSimScreen('app')">3. Main App (5 Tabs)</button>
+        <button class="sim-btn offline-sim" id="btnSimOffline" onclick="toggleSimOffline()">
+            <i class="fa-solid fa-wifi"></i> Simulate Offline
         </button>
     </div>
 
-    <!-- ANDROID PHONE FRAME -->
+    <!-- Android Phone Frame -->
     <div class="phone-frame">
-
         <!-- Android Status Bar -->
         <div class="android-statusbar">
-            <span>9:41 AM</span>
+            <span>9:41</span>
             <div style="display:flex;gap:6px;align-items:center;">
                 <i class="fa-solid fa-signal"></i>
-                <i class="fa-solid fa-wifi"></i>
-                <i class="fa-solid fa-battery-full" style="color:#16a34a;"></i>
+                <i class="fa-solid fa-wifi" id="statusWifiIcon"></i>
+                <i class="fa-solid fa-battery-full"></i>
             </div>
         </div>
 
-        <!-- =========================================================
-             SCREEN 1: LOGIN AUTH SCREEN (Mirrors Central Login)
-             ========================================================= -->
-        <div id="screen-login">
-            <img src="logo.png" alt="SmartSchool.ug" class="login-logo">
-            <span class="login-pill"><i class="fa-brands fa-android"></i> Teacher &amp; Admin App</span>
+        <div class="phone-screen" id="phoneScreenRoot">
 
-            <div class="auth-card">
-                <h1 class="auth-title">Sign In</h1>
-                <p class="auth-sub">Sign in to Staff, Teacher, or Admin Portal</p>
-
-                <!-- Step 1: Lookup -->
-                <div id="simStep1">
-                    <div class="f-group">
-                        <label class="f-label">Username or Phone Number</label>
-                        <input type="text" class="f-input" value="0772651444" placeholder="Username, Phone, or Email">
+            <!-- OFFLINE DETECTION OVERLAY -->
+            <div id="simOfflineOverlay" class="offline-overlay">
+                <div class="offline-card">
+                    <div class="offline-icon-circle">
+                        <i class="fa-solid fa-wifi"></i>
                     </div>
-                    <button type="button" class="btn-teal" onclick="showLoginStep(2)">
-                        <span>Login</span>
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </button>
-                    <div style="margin-top:12px;">
-                        <a href="javascript:void(0)" style="color:var(--teal);font-size:0.8rem;font-weight:600;text-decoration:none;">Forgot Password?</a>
-                    </div>
-                </div>
-
-                <!-- Step 2: Matched School + Password -->
-                <div id="simStep2" style="display:none;">
-                    <div class="matched-badge">
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <img src="logo.png" alt="School" style="width:32px;height:32px;border-radius:6px;background:#fff;border:1px solid #e2e8f0;padding:2px;">
-                            <div>
-                                <div style="font-size:0.82rem;font-weight:800;color:#0f172a;">AX Primary &amp; Secondary</div>
-                                <div style="font-size:0.72rem;color:#64748b;">Tr. Yerindabo (Staff)</div>
-                            </div>
-                        </div>
-                        <button type="button" onclick="showLoginStep(1)" style="background:#fff;border:1px solid #99f6e4;color:var(--teal);font-size:0.72rem;font-weight:700;padding:4px 8px;border-radius:6px;cursor:pointer;">Change</button>
-                    </div>
-
-                    <div class="f-group">
-                        <label class="f-label">Password</label>
-                        <input type="password" class="f-input" value="••••••••••••" placeholder="Enter your password">
-                    </div>
-
-                    <button type="button" class="btn-teal" onclick="showMainApp()">
-                        <i class="fa-solid fa-right-to-bracket"></i>
-                        <span>Sign In</span>
-                    </button>
-                </div>
-
-                <div style="margin-top:16px;padding-top:12px;border-top:1px solid #f1f5f9;font-size:0.74rem;color:#64748b;">
-                    2026 &copy; <strong style="color:var(--teal);">SmartSchool.ug</strong>
-                </div>
-            </div>
-        </div>
-
-        <!-- =========================================================
-             SCREEN 2: MAIN MOBILE APP (Top Bar + 5 Bottom Nav Tabs)
-             ========================================================= -->
-        <div id="screen-app" class="active">
-
-            <!-- TOP BAR: School Logo Left | Notification & Profile Icon Right -->
-            <header class="app-topbar">
-                <div class="topbar-left">
-                    <img src="logo.png" alt="School Logo" class="school-logo">
-                    <div>
-                        <div class="school-title">AX Primary School</div>
-                        <div class="school-term"><i class="fa-solid fa-circle" style="font-size:6px;"></i> Term III &bull; 2026</div>
-                    </div>
-                </div>
-                <div class="topbar-right">
-                    <button type="button" class="icon-btn" onclick="toggleDrawer('notifDrawer')" title="Notifications">
-                        <i class="fa-regular fa-bell"></i>
-                        <span class="badge-dot">3</span>
-                    </button>
-                    <button type="button" class="profile-btn" onclick="toggleDrawer('profileDrawer')" title="Staff Profile">
-                        TY
-                    </button>
-                </div>
-            </header>
-
-            <!-- MAIN VIEWPORT -->
-            <div class="app-viewport">
-
-                <!-- 1. HOME TAB -->
-                <div id="tab-home" class="tab-view active">
-                    <div class="hero-box">
-                        <div style="font-size:0.74rem;color:#94a3b8;">Good morning,</div>
-                        <div style="font-size:1.12rem;font-weight:800;margin:2px 0 8px;">Tr. Yerindabo</div>
-                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                            <span style="background:rgba(255,255,255,0.14);padding:3px 9px;border-radius:999px;font-size:0.68rem;font-weight:600;">
-                                <i class="fa-solid fa-chalkboard-user"></i> Senior Teacher &amp; Admin
-                            </span>
-                            <span style="background:rgba(13,148,136,0.35);padding:3px 9px;border-radius:999px;font-size:0.68rem;font-weight:600;">
-                                <i class="fa-solid fa-check-circle"></i> Online
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="kpi-row">
-                        <div class="kpi-box">
-                            <div style="font-size:1.1rem;font-weight:800;">428</div>
-                            <div style="font-size:0.64rem;color:#64748b;font-weight:600;">Total Pupils</div>
-                        </div>
-                        <div class="kpi-box">
-                            <div style="font-size:1.1rem;font-weight:800;color:#16a34a;">405</div>
-                            <div style="font-size:0.64rem;color:#64748b;font-weight:600;">Present Today</div>
-                        </div>
-                        <div class="kpi-box">
-                            <div style="font-size:1.1rem;font-weight:800;color:#dc2626;">23</div>
-                            <div style="font-size:0.64rem;color:#64748b;font-weight:600;">Absent Today</div>
-                        </div>
-                    </div>
-
-                    <div style="font-size:0.8rem;font-weight:800;margin-bottom:8px;">Quick Actions</div>
-                    <div class="q-grid">
-                        <button class="q-card" onclick="selectTab('attendance')">
-                            <div class="q-icon" style="background:#dcfce7;color:#16a34a;"><i class="fa-solid fa-clipboard-user"></i></div>
-                            <div>
-                                <div style="font-size:0.78rem;font-weight:700;">Attendance</div>
-                                <div style="font-size:0.65rem;color:#64748b;">Mark roll call</div>
-                            </div>
-                        </button>
-                        <button class="q-card" onclick="selectTab('marks')">
-                            <div class="q-icon" style="background:#dbeafe;color:#2563eb;"><i class="fa-solid fa-pen-to-square"></i></div>
-                            <div>
-                                <div style="font-size:0.78rem;font-weight:700;">Record Marks</div>
-                                <div style="font-size:0.65rem;color:#64748b;">Enter scores</div>
-                            </div>
-                        </button>
-                        <button class="q-card" onclick="selectTab('timetable')">
-                            <div class="q-icon" style="background:#fef3c7;color:#d97706;"><i class="fa-solid fa-calendar-days"></i></div>
-                            <div>
-                                <div style="font-size:0.78rem;font-weight:700;">Timetable</div>
-                                <div style="font-size:0.65rem;color:#64748b;">4 lessons today</div>
-                            </div>
-                        </button>
-                        <button class="q-card" onclick="toggleDrawer('notifDrawer')">
-                            <div class="q-icon" style="background:#f3e8ff;color:#7c3aed;"><i class="fa-solid fa-bell"></i></div>
-                            <div>
-                                <div style="font-size:0.78rem;font-weight:700;">Notices</div>
-                                <div style="font-size:0.65rem;color:#64748b;">3 unread alerts</div>
-                            </div>
-                        </button>
-                    </div>
-
-                    <div style="font-size:0.8rem;font-weight:800;margin-bottom:8px;">Latest Announcements</div>
-                    <div class="card-box" style="border-left:4px solid #dc2626;">
-                        <div style="display:flex;justify-content:space-between;font-size:0.78rem;font-weight:700;margin-bottom:3px;">
-                            <span>End of Term Marks Deadline</span>
-                            <span style="font-size:0.65rem;color:#dc2626;">Urgent</span>
-                        </div>
-                        <p style="font-size:0.73rem;color:#475569;line-height:1.4;">All subject teachers must complete EOT score entry before Friday 5:00 PM for report card printing.</p>
-                    </div>
-                    <div class="card-box" style="border-left:4px solid #0d9488;">
-                        <div style="display:flex;justify-content:space-between;font-size:0.78rem;font-weight:700;margin-bottom:3px;">
-                            <span>Staff Briefing Tomorrow</span>
-                            <span style="font-size:0.65rem;color:#64748b;">2h ago</span>
-                        </div>
-                        <p style="font-size:0.73rem;color:#475569;line-height:1.4;">Morning staff briefing in the main staffroom at 7:45 AM sharp.</p>
-                    </div>
-                </div>
-
-                <!-- 2. ATTENDANCE TAB -->
-                <div id="tab-attendance" class="tab-view">
-                    <div class="card-box">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                            <strong style="font-size:0.88rem;"><i class="fa-solid fa-clipboard-user" style="color:var(--teal);"></i> Class Attendance</strong>
-                            <span style="font-size:0.72rem;background:#f0fdfa;color:var(--teal);padding:3px 8px;border-radius:6px;font-weight:700;">Today</span>
-                        </div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                            <select class="f-input" style="padding:8px 10px;font-size:0.78rem;">
-                                <option>Primary Seven (P.7)</option>
-                                <option>Primary Six (P.6)</option>
-                                <option>Senior One (S.1)</option>
-                            </select>
-                            <select class="f-input" style="padding:8px 10px;font-size:0.78rem;">
-                                <option>All Streams (Optional)</option>
-                                <option>Stream East</option>
-                                <option>Stream West</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row-student">
-                        <div>
-                            <div style="font-size:0.82rem;font-weight:700;">Ainomugisha Blessing</div>
-                            <div style="font-size:0.68rem;color:#64748b;">ID: #26001 &bull; Female</div>
-                        </div>
-                        <div style="display:flex;gap:4px;">
-                            <button class="att-btn P" onclick="cycleAtt(this)">P</button>
-                            <button class="att-btn" onclick="cycleAtt(this)">A</button>
-                            <button class="att-btn" onclick="cycleAtt(this)">L</button>
-                        </div>
-                    </div>
-
-                    <div class="row-student">
-                        <div>
-                            <div style="font-size:0.82rem;font-weight:700;">Byaruhanga Joshua</div>
-                            <div style="font-size:0.68rem;color:#64748b;">ID: #26002 &bull; Male</div>
-                        </div>
-                        <div style="display:flex;gap:4px;">
-                            <button class="att-btn P" onclick="cycleAtt(this)">P</button>
-                            <button class="att-btn" onclick="cycleAtt(this)">A</button>
-                            <button class="att-btn" onclick="cycleAtt(this)">L</button>
-                        </div>
-                    </div>
-
-                    <div class="row-student">
-                        <div>
-                            <div style="font-size:0.82rem;font-weight:700;">Kemigisha Sarah</div>
-                            <div style="font-size:0.68rem;color:#64748b;">ID: #26003 &bull; Female</div>
-                        </div>
-                        <div style="display:flex;gap:4px;">
-                            <button class="att-btn" onclick="cycleAtt(this)">P</button>
-                            <button class="att-btn A" onclick="cycleAtt(this)">A</button>
-                            <button class="att-btn" onclick="cycleAtt(this)">L</button>
-                        </div>
-                    </div>
-
-                    <div class="row-student">
-                        <div>
-                            <div style="font-size:0.82rem;font-weight:700;">Mugisha Daniel</div>
-                            <div style="font-size:0.68rem;color:#64748b;">ID: #26004 &bull; Male</div>
-                        </div>
-                        <div style="display:flex;gap:4px;">
-                            <button class="att-btn P" onclick="cycleAtt(this)">P</button>
-                            <button class="att-btn" onclick="cycleAtt(this)">A</button>
-                            <button class="att-btn" onclick="cycleAtt(this)">L</button>
-                        </div>
-                    </div>
-
-                    <button class="btn-teal" style="margin-top:8px;" onclick="alert('Attendance saved for P.7!')">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> Save Attendance
-                    </button>
-                </div>
-
-                <!-- 3. RECORD MARKS TAB -->
-                <div id="tab-marks" class="tab-view">
-                    <div class="card-box">
-                        <strong style="font-size:0.88rem;display:block;margin-bottom:8px;"><i class="fa-solid fa-pen-to-square" style="color:var(--blue);"></i> Enter Learner Scores</strong>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-                            <select class="f-input" style="padding:8px 10px;font-size:0.78rem;">
-                                <option>Primary Seven (P.7)</option>
-                                <option>Primary Six (P.6)</option>
-                            </select>
-                            <select class="f-input" style="padding:8px 10px;font-size:0.78rem;">
-                                <option>Mathematics</option>
-                                <option>English</option>
-                                <option>Integrated Science</option>
-                                <option>Social Studies</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row-student">
-                        <div>
-                            <div style="font-size:0.82rem;font-weight:700;">Ainomugisha Blessing</div>
-                            <div style="font-size:0.68rem;color:#64748b;">Grade: <strong style="color:#16a34a;">D1</strong></div>
-                        </div>
-                        <input type="number" class="f-input" value="92" style="width:72px;text-align:center;font-weight:800;padding:8px;">
-                    </div>
-
-                    <div class="row-student">
-                        <div>
-                            <div style="font-size:0.82rem;font-weight:700;">Byaruhanga Joshua</div>
-                            <div style="font-size:0.68rem;color:#64748b;">Grade: <strong style="color:#16a34a;">D2</strong></div>
-                        </div>
-                        <input type="number" class="f-input" value="78" style="width:72px;text-align:center;font-weight:800;padding:8px;">
-                    </div>
-
-                    <div class="row-student">
-                        <div>
-                            <div style="font-size:0.82rem;font-weight:700;">Kemigisha Sarah</div>
-                            <div style="font-size:0.68rem;color:#64748b;">Grade: <strong style="color:#2563eb;">C3</strong></div>
-                        </div>
-                        <input type="number" class="f-input" value="68" style="width:72px;text-align:center;font-weight:800;padding:8px;">
-                    </div>
-
-                    <div class="row-student">
-                        <div>
-                            <div style="font-size:0.82rem;font-weight:700;">Mugisha Daniel</div>
-                            <div style="font-size:0.68rem;color:#64748b;">Grade: <strong style="color:#d97706;">C5</strong></div>
-                        </div>
-                        <input type="number" class="f-input" value="56" style="width:72px;text-align:center;font-weight:800;padding:8px;">
-                    </div>
-
-                    <button class="btn-teal" style="margin-top:8px;" onclick="alert('Mathematics marks saved!')">
-                        <i class="fa-solid fa-floppy-disk"></i> Save Mathematics Scores
-                    </button>
-                </div>
-
-                <!-- 4. TIMETABLE TAB -->
-                <div id="tab-timetable" class="tab-view">
-                    <div class="card-box">
-                        <strong style="font-size:0.88rem;"><i class="fa-solid fa-calendar-days" style="color:#d97706;"></i> My Teaching Timetable</strong>
-                        <div style="display:flex;gap:5px;margin-top:8px;">
-                            <span style="flex:1;text-align:center;background:var(--teal);color:#fff;padding:6px;border-radius:8px;font-size:0.72rem;font-weight:700;">Mon</span>
-                            <span style="flex:1;text-align:center;background:#f8fafc;padding:6px;border-radius:8px;font-size:0.72rem;font-weight:700;color:#64748b;">Tue</span>
-                            <span style="flex:1;text-align:center;background:#f8fafc;padding:6px;border-radius:8px;font-size:0.72rem;font-weight:700;color:#64748b;">Wed</span>
-                            <span style="flex:1;text-align:center;background:#f8fafc;padding:6px;border-radius:8px;font-size:0.72rem;font-weight:700;color:#64748b;">Thu</span>
-                            <span style="flex:1;text-align:center;background:#f8fafc;padding:6px;border-radius:8px;font-size:0.72rem;font-weight:700;color:#64748b;">Fri</span>
-                        </div>
-                    </div>
-
-                    <div class="card-box" style="border-left:4px solid var(--teal);display:flex;justify-content:space-between;align-items:center;">
-                        <div>
-                            <div style="font-size:0.84rem;font-weight:800;">Mathematics</div>
-                            <div style="font-size:0.72rem;color:#64748b;">Primary Seven (P.7) &bull; Rm 04</div>
-                        </div>
-                        <span style="background:#f0fdfa;color:var(--teal-dark);font-size:0.7rem;font-weight:700;padding:4px 8px;border-radius:6px;">08:00 - 09:20</span>
-                    </div>
-
-                    <div class="card-box" style="border-left:4px solid #2563eb;display:flex;justify-content:space-between;align-items:center;">
-                        <div>
-                            <div style="font-size:0.84rem;font-weight:800;">Integrated Science</div>
-                            <div style="font-size:0.72rem;color:#64748b;">Primary Six (P.6) &bull; Rm 02</div>
-                        </div>
-                        <span style="background:#eff6ff;color:#1d4ed8;font-size:0.7rem;font-weight:700;padding:4px 8px;border-radius:6px;">09:20 - 10:40</span>
-                    </div>
-
-                    <div class="card-box" style="border-left:4px solid #d97706;display:flex;justify-content:space-between;align-items:center;">
-                        <div>
-                            <div style="font-size:0.84rem;font-weight:800;">Mathematics</div>
-                            <div style="font-size:0.72rem;color:#64748b;">Primary Five (P.5) &bull; Rm 01</div>
-                        </div>
-                        <span style="background:#fef3c7;color:#b45309;font-size:0.7rem;font-weight:700;padding:4px 8px;border-radius:6px;">11:10 - 12:30</span>
-                    </div>
-                </div>
-
-                <!-- 5. SETTINGS TAB -->
-                <div id="tab-settings" class="tab-view">
-                    <div class="card-box" style="display:flex;align-items:center;gap:12px;">
-                        <div style="width:48px;height:48px;border-radius:14px;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;">TY</div>
-                        <div>
-                            <div style="font-size:0.9rem;font-weight:800;">Tr. Yerindabo</div>
-                            <div style="font-size:0.74rem;color:#64748b;">0772 651 444 &bull; Senior Staff</div>
-                            <div style="font-size:0.7rem;color:var(--teal);font-weight:700;">AX Primary School</div>
-                        </div>
-                    </div>
-
-                    <div class="card-box">
-                        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:0.82rem;font-weight:600;">
-                            <span><i class="fa-solid fa-bell" style="color:var(--teal);width:20px;"></i> Push Notifications</span>
-                            <input type="checkbox" checked style="accent-color:var(--teal);width:17px;height:17px;">
-                        </div>
-                        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:0.82rem;font-weight:600;">
-                            <span><i class="fa-solid fa-database" style="color:var(--blue);width:20px;"></i> Offline Score Sync</span>
-                            <input type="checkbox" checked style="accent-color:var(--teal);width:17px;height:17px;">
-                        </div>
-                        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;font-size:0.82rem;font-weight:600;cursor:pointer;" onclick="showLoginStep(1)">
-                            <span style="color:#dc2626;"><i class="fa-solid fa-right-from-bracket" style="width:20px;"></i> Sign Out</span>
-                            <i class="fa-solid fa-chevron-right" style="font-size:0.7rem;color:#94a3b8;"></i>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- BOTTOM NAVIGATION MENU: Home, Attendance, Record Marks, Timetable, Settings -->
-            <nav class="app-bottomnav">
-                <button class="b-tab active" data-target="home" onclick="selectTab('home')">
-                    <i class="fa-solid fa-house"></i>
-                    <span>Home</span>
-                </button>
-                <button class="b-tab" data-target="attendance" onclick="selectTab('attendance')">
-                    <i class="fa-solid fa-clipboard-user"></i>
-                    <span>Attendance</span>
-                </button>
-                <button class="b-tab" data-target="marks" onclick="selectTab('marks')">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                    <span>Record Marks</span>
-                </button>
-                <button class="b-tab" data-target="timetable" onclick="selectTab('timetable')">
-                    <i class="fa-solid fa-calendar-days"></i>
-                    <span>Timetable</span>
-                </button>
-                <button class="b-tab" data-target="settings" onclick="selectTab('settings')">
-                    <i class="fa-solid fa-gear"></i>
-                    <span>Settings</span>
-                </button>
-            </nav>
-
-            <!-- Notification Slide-up Drawer -->
-            <div id="notifDrawer" class="drawer-overlay" onclick="if(event.target===this) toggleDrawer('notifDrawer')">
-                <div class="drawer-box">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                        <strong style="font-size:0.95rem;"><i class="fa-solid fa-bell" style="color:var(--teal);"></i> School Notifications (3)</strong>
-                        <button onclick="toggleDrawer('notifDrawer')" style="border:none;background:#f1f5f9;width:28px;height:28px;border-radius:50%;cursor:pointer;">&times;</button>
-                    </div>
-                    <div class="card-box" style="border-left:4px solid #dc2626;">
-                        <strong style="font-size:0.8rem;">End of Term Marks Deadline</strong>
-                        <p style="font-size:0.74rem;color:#475569;margin-top:3px;">Please submit all EOT scores by Friday 5:00 PM.</p>
-                    </div>
-                    <div class="card-box" style="border-left:4px solid var(--teal);">
-                        <strong style="font-size:0.8rem;">Staff Morning Briefing</strong>
-                        <p style="font-size:0.74rem;color:#475569;margin-top:3px;">Staff meeting tomorrow at 7:45 AM in the main staffroom.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Profile Slide-up Drawer -->
-            <div id="profileDrawer" class="drawer-overlay" onclick="if(event.target===this) toggleDrawer('profileDrawer')">
-                <div class="drawer-box" style="text-align:center;">
-                    <div style="width:56px;height:56px;border-radius:16px;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.2rem;margin:0 auto 8px;">TY</div>
-                    <div style="font-weight:800;font-size:0.95rem;">Tr. Yerindabo</div>
-                    <div style="font-size:0.76rem;color:#64748b;margin-bottom:14px;">AX Primary School &bull; Term III 2026</div>
-                    <button class="btn-teal" style="background:#fee2e2;color:#b91c1c;box-shadow:none;" onclick="toggleDrawer('profileDrawer');showLoginStep(1);">
-                        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+                    <h3 style="font-size:1.1rem;font-weight:800;color:var(--navy);margin-bottom:6px;">You Are Offline</h3>
+                    <p style="font-size:0.78rem;color:var(--subtext);line-height:1.45;margin-bottom:16px;">
+                        Your internet connection is currently off. Please connect to the internet (Wi-Fi or Mobile Data) to access <strong>SmartSchool.ug</strong>.
+                    </p>
+                    <button type="button" class="btn-teal" onclick="toggleSimOffline(false)">
+                        <i class="fa-solid fa-rotate-right"></i>
+                        <span>Connect &amp; Retry</span>
                     </button>
                 </div>
             </div>
 
+            <!-- Toast Notification -->
+            <div id="simToast" class="toast-pill">
+                <i class="fa-solid fa-circle-check" style="color:#22c55e;"></i>
+                <span id="simToastText">Saved!</span>
+            </div>
+
+            <!-- =================================================
+                 LOGIN SCREEN (Matches Real System 2-Step Login)
+                 ================================================= -->
+            <div id="screen-login">
+                <img src="ax-systems/smartschool.ug/public/logo.png" alt="SmartSchool.ug" class="login-logo" onerror="this.style.display='none'">
+                <span class="android-badge"><i class="fa-brands fa-android"></i> Teacher &amp; Admin Mobile App</span>
+
+                <div class="auth-card">
+                    <h1 class="auth-title">Sign In</h1>
+                    <p class="auth-sub">Enter your Staff Phone Number, Email, or Username to access your school workspace</p>
+
+                    <!-- Step 1: Lookup -->
+                    <div id="loginStep1">
+                        <div class="f-group">
+                            <label class="f-label">Phone Number or Email Address</label>
+                            <input type="text" class="f-input" value="0772651444" placeholder="e.g. 0772651444 or teacher@school.ug">
+                        </div>
+                        <button type="button" class="btn-teal" onclick="showSimScreen('login2')">
+                            <span>Continue</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                        <div style="margin-top:12px;">
+                            <a href="javascript:void(0)" style="color:var(--teal);font-size:0.78rem;font-weight:700;text-decoration:none;">Forgot Password?</a>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Matched School + Password -->
+                    <div id="loginStep2" style="display:none;">
+                        <div class="matched-school-badge">
+                            <div style="display:flex;align-items:center;gap:9px;">
+                                <div class="school-logo-box">AX</div>
+                                <div>
+                                    <div style="font-size:0.82rem;font-weight:800;color:var(--navy);">AX Primary &amp; Secondary</div>
+                                    <div style="font-size:0.72rem;color:var(--subtext);">Mr. Kato Emmanuel (Teacher)</div>
+                                </div>
+                            </div>
+                            <button type="button" onclick="showSimScreen('login1')" style="background:var(--card);border:1px solid #99f6e4;color:var(--teal);border-radius:7px;padding:4px 8px;font-size:0.72rem;font-weight:700;cursor:pointer;">Change</button>
+                        </div>
+
+                        <div class="f-group">
+                            <label class="f-label">Account Password</label>
+                            <input type="password" class="f-input" value="••••••••••••">
+                        </div>
+
+                        <button type="button" class="btn-teal" onclick="showSimScreen('app');popToast('Signed in to AX School!');">
+                            <i class="fa-solid fa-right-to-bracket"></i>
+                            <span>Sign In to Mobile App</span>
+                        </button>
+                    </div>
+
+                    <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);font-size:0.72rem;color:var(--muted);">
+                        2026 &copy; <strong style="color:var(--teal);">SmartSchool.ug</strong> &bull; Android Staff Edition
+                    </div>
+                </div>
+            </div>
+
+            <!-- =================================================
+                 MAIN APP SCREEN (Top Bar + 5 Bottom Nav Tabs)
+                 ================================================= -->
+            <div id="screen-app" class="active">
+
+                <!-- TOP BAR: School Logo Left | Notification & Profile Icon Right -->
+                <header class="app-topbar">
+                    <div class="topbar-left">
+                        <div class="school-logo-box">AX</div>
+                        <div style="min-width:0;">
+                            <div class="school-title">AX High School</div>
+                            <div class="school-term">
+                                <i class="fa-solid fa-circle" style="font-size:5px;"></i>
+                                <span>Term II &bull; 2026</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="topbar-right">
+                        <button type="button" class="icon-btn" onclick="openDrawer('notifDrawer')" title="Notifications">
+                            <i class="fa-regular fa-bell"></i>
+                            <span class="notif-dot">3</span>
+                        </button>
+                        <button type="button" class="profile-btn" onclick="openDrawer('profileDrawer')" title="Staff Profile">
+                            KE
+                        </button>
+                    </div>
+                </header>
+
+                <!-- MAIN TAB BODY -->
+                <div class="app-body">
+
+                    <!-- TAB 1: HOME -->
+                    <div id="tab-home" class="tab-pane active">
+                        <div class="hero-card">
+                            <div style="font-size:0.72rem;color:#94a3b8;">Welcome back,</div>
+                            <div style="font-size:1.1rem;font-weight:800;margin:2px 0 8px;">Tr. Kato Emmanuel</div>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                                <span style="background:rgba(255,255,255,0.14);padding:3px 9px;border-radius:999px;font-size:0.68rem;font-weight:600;">
+                                    <i class="fa-solid fa-chalkboard-user"></i> Senior Teacher &amp; Admin
+                                </span>
+                                <span style="background:rgba(255,255,255,0.14);padding:3px 9px;border-radius:999px;font-size:0.68rem;font-weight:600;">
+                                    <i class="fa-regular fa-calendar"></i> Term II Active
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="kpi-row">
+                            <div class="kpi-box">
+                                <div class="kpi-num">642</div>
+                                <div class="kpi-txt">Students</div>
+                            </div>
+                            <div class="kpi-box">
+                                <div class="kpi-num" style="color:var(--green);">618</div>
+                                <div class="kpi-txt">Present Today</div>
+                            </div>
+                            <div class="kpi-box">
+                                <div class="kpi-num" style="color:var(--red);">24</div>
+                                <div class="kpi-txt">Absent Today</div>
+                            </div>
+                        </div>
+
+                        <div style="font-size:0.8rem;font-weight:800;color:var(--navy);margin-bottom:8px;">Quick Classroom Actions</div>
+                        <div class="q-grid">
+                            <button type="button" class="q-card" onclick="selectTab('attendance')">
+                                <div class="q-icon" style="background:#dcfce7;color:#16a34a;"><i class="fa-solid fa-clipboard-user"></i></div>
+                                <div>
+                                    <div style="font-size:0.78rem;font-weight:800;color:var(--navy);">Attendance</div>
+                                    <div style="font-size:0.66rem;color:var(--muted);">60-min edit window</div>
+                                </div>
+                            </button>
+                            <button type="button" class="q-card" onclick="selectTab('marks')">
+                                <div class="q-icon" style="background:#dbeafe;color:#2563eb;"><i class="fa-solid fa-pen-to-square"></i></div>
+                                <div>
+                                    <div style="font-size:0.78rem;font-weight:800;color:var(--navy);">Record Marks</div>
+                                    <div style="font-size:0.66rem;color:var(--muted);">BOT, MOT, EOT, AoI</div>
+                                </div>
+                            </button>
+                            <button type="button" class="q-card" onclick="selectTab('timetable')">
+                                <div class="q-icon" style="background:#fef3c7;color:#d97706;"><i class="fa-solid fa-calendar-days"></i></div>
+                                <div>
+                                    <div style="font-size:0.78rem;font-weight:800;color:var(--navy);">Timetable</div>
+                                    <div style="font-size:0.66rem;color:var(--muted);">Add &amp; view lessons</div>
+                                </div>
+                            </button>
+                            <button type="button" class="q-card" onclick="openDrawer('notifDrawer')">
+                                <div class="q-icon" style="background:#f3e8ff;color:#7c3aed;"><i class="fa-solid fa-bullhorn"></i></div>
+                                <div>
+                                    <div style="font-size:0.78rem;font-weight:800;color:var(--navy);">Notices</div>
+                                    <div style="font-size:0.66rem;color:var(--muted);">3 unread alerts</div>
+                                </div>
+                            </button>
+                        </div>
+
+                        <div style="font-size:0.8rem;font-weight:800;color:var(--navy);margin-bottom:8px;">Latest Announcements</div>
+                        <div class="m-card" style="border-left:4px solid #dc2626;">
+                            <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                                <strong style="font-size:0.78rem;color:var(--navy);">Deadline: Mid-Term Marks Entry</strong>
+                                <span style="font-size:0.65rem;color:var(--muted);">15m ago</span>
+                            </div>
+                            <p style="font-size:0.73rem;color:var(--subtext);line-height:1.4;">All subject teachers must complete Mid-Term (MOT) &amp; AoI score entry by Friday 5:00 PM.</p>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: ATTENDANCE (With 60-Minute Edit Window & New Session Rule) -->
+                    <div id="tab-attendance" class="tab-pane">
+                        <div class="m-card">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                                <strong style="font-size:0.88rem;color:var(--navy);"><i class="fa-solid fa-clipboard-user" style="color:var(--teal);margin-right:5px;"></i>Take Class Attendance</strong>
+                                <span style="font-size:0.7rem;background:var(--teal-light);color:var(--teal);padding:3px 8px;border-radius:6px;font-weight:700;">Today</span>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                                <select class="f-input" style="padding:8px 10px;font-size:0.78rem;">
+                                    <option>Senior 2</option>
+                                    <option>Senior 1</option>
+                                    <option>Senior 3</option>
+                                    <option>Senior 4</option>
+                                </select>
+                                <select class="f-input" style="padding:8px 10px;font-size:0.78rem;">
+                                    <option>Stream North</option>
+                                    <option>Stream East</option>
+                                </select>
+                            </div>
+
+                            <!-- 60-Minute Edit Window Status Banner -->
+                            <div id="simAttBanner" class="att-banner new">
+                                <span id="simAttBannerText"><i class="fa-solid fa-circle-check"></i> <strong>New Attendance Session</strong> — Editable for 60 mins after saving.</span>
+                                <span id="simAttTimerBadge" style="background:rgba(0,0,0,0.08);padding:3px 7px;border-radius:6px;font-weight:800;white-space:nowrap;">60m window</span>
+                            </div>
+
+                            <!-- Simulator Helper to test >60 minutes expiry -->
+                            <div id="simFastForwardBar" style="display:none;margin-bottom:6px;text-align:right;">
+                                <button type="button" onclick="simulateExpire60Mins()" style="background:#e0e7ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:7px;padding:4px 9px;font-size:0.68rem;font-weight:800;cursor:pointer;">
+                                    <i class="fa-solid fa-forward-fast"></i> Simulate &gt;60 Mins Passed (Test Lock)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="student-row">
+                            <div>
+                                <div style="font-size:0.82rem;font-weight:700;color:var(--navy);">Achieng Sarah Grace</div>
+                                <div style="font-size:0.68rem;color:var(--muted);">ID: AX-2041 &bull; S.2 North</div>
+                            </div>
+                            <div style="display:flex;gap:4px;">
+                                <button class="att-btn P" onclick="toggleSimAtt(this,'P')">P</button>
+                                <button class="att-btn" onclick="toggleSimAtt(this,'A')">A</button>
+                                <button class="att-btn" onclick="toggleSimAtt(this,'L')">L</button>
+                            </div>
+                        </div>
+
+                        <div class="student-row">
+                            <div>
+                                <div style="font-size:0.82rem;font-weight:700;color:var(--navy);">Bukenya David</div>
+                                <div style="font-size:0.68rem;color:var(--muted);">ID: AX-2042 &bull; S.2 North</div>
+                            </div>
+                            <div style="display:flex;gap:4px;">
+                                <button class="att-btn P" onclick="toggleSimAtt(this,'P')">P</button>
+                                <button class="att-btn" onclick="toggleSimAtt(this,'A')">A</button>
+                                <button class="att-btn" onclick="toggleSimAtt(this,'L')">L</button>
+                            </div>
+                        </div>
+
+                        <div class="student-row">
+                            <div>
+                                <div style="font-size:0.82rem;font-weight:700;color:var(--navy);">Mugisha Ivan</div>
+                                <div style="font-size:0.68rem;color:var(--muted);">ID: AX-2048 &bull; S.2 North</div>
+                            </div>
+                            <div style="display:flex;gap:4px;">
+                                <button class="att-btn" onclick="toggleSimAtt(this,'P')">P</button>
+                                <button class="att-btn A" onclick="toggleSimAtt(this,'A')">A</button>
+                                <button class="att-btn" onclick="toggleSimAtt(this,'L')">L</button>
+                            </div>
+                        </div>
+
+                        <div class="student-row">
+                            <div>
+                                <div style="font-size:0.82rem;font-weight:700;color:var(--navy);">Namukasa Brenda</div>
+                                <div style="font-size:0.68rem;color:var(--muted);">ID: AX-2055 &bull; S.2 North</div>
+                            </div>
+                            <div style="display:flex;gap:4px;">
+                                <button class="att-btn" onclick="toggleSimAtt(this,'P')">P</button>
+                                <button class="att-btn" onclick="toggleSimAtt(this,'A')">A</button>
+                                <button class="att-btn L" onclick="toggleSimAtt(this,'L')">L</button>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn-teal" id="simAttSaveBtn" onclick="saveSimAttendance()">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <span id="simAttSaveLabel">Save Class Attendance</span>
+                        </button>
+                    </div>
+
+                    <!-- TAB 3: RECORD MARKS -->
+                    <div id="tab-marks" class="tab-pane">
+                        <div class="m-card">
+                            <strong style="font-size:0.88rem;color:var(--navy);display:block;margin-bottom:8px;">
+                                <i class="fa-solid fa-pen-to-square" style="color:var(--blue);margin-right:5px;"></i>Enter Student Scores
+                            </strong>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                                <select class="f-input" style="padding:8px 10px;font-size:0.76rem;">
+                                    <option>Senior 2 North</option>
+                                    <option>Senior 3 East</option>
+                                </select>
+                                <select class="f-input" style="padding:8px 10px;font-size:0.76rem;">
+                                    <option>Mathematics</option>
+                                    <option>Physics</option>
+                                    <option>Chemistry</option>
+                                </select>
+                            </div>
+                            <select class="f-input" style="padding:8px 10px;font-size:0.76rem;">
+                                <option>End of Term Exam (EOT - Out of 80 / 100)</option>
+                                <option>Mid-Term Assessment (MOT)</option>
+                                <option>Activity of Integration (AoI - Out of 3.0)</option>
+                            </select>
+                        </div>
+
+                        <div class="student-row">
+                            <div>
+                                <div style="font-size:0.82rem;font-weight:700;color:var(--navy);">Achieng Sarah Grace</div>
+                                <div style="font-size:0.68rem;color:var(--muted);">ID: AX-2041</div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <input type="number" class="score-inp" value="84">
+                                <span style="background:#dcfce7;color:#15803d;font-size:0.7rem;font-weight:800;padding:4px 7px;border-radius:6px;">D1</span>
+                            </div>
+                        </div>
+
+                        <div class="student-row">
+                            <div>
+                                <div style="font-size:0.82rem;font-weight:700;color:var(--navy);">Bukenya David</div>
+                                <div style="font-size:0.68rem;color:var(--muted);">ID: AX-2042</div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <input type="number" class="score-inp" value="76">
+                                <span style="background:#dcfce7;color:#15803d;font-size:0.7rem;font-weight:800;padding:4px 7px;border-radius:6px;">D2</span>
+                            </div>
+                        </div>
+
+                        <div class="student-row">
+                            <div>
+                                <div style="font-size:0.82rem;font-weight:700;color:var(--navy);">Mugisha Ivan</div>
+                                <div style="font-size:0.68rem;color:var(--muted);">ID: AX-2048</div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <input type="number" class="score-inp" value="68">
+                                <span style="background:#dbeafe;color:#1d4ed8;font-size:0.7rem;font-weight:800;padding:4px 7px;border-radius:6px;">C3</span>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn-teal" onclick="popToast('Mathematics marks saved!')">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Save Subject Marks</span>
+                        </button>
+                    </div>
+
+                    <!-- TAB 4: TIMETABLE (Teacher Can Add Multiple Lessons & Sync to Main System) -->
+                    <div id="tab-timetable" class="tab-pane">
+                        <div class="m-card" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                            <div>
+                                <strong style="font-size:0.88rem;color:var(--navy);"><i class="fa-solid fa-calendar-days" style="color:var(--amber);margin-right:5px;"></i>My Timetable</strong>
+                                <p style="font-size:0.68rem;color:var(--muted);margin-top:2px;">Saved in main system timetable</p>
+                            </div>
+                            <button type="button" onclick="openDrawer('addLessonDrawer')" style="background:var(--teal);color:#fff;border:none;border-radius:10px;padding:8px 11px;font-size:0.74rem;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:5px;">
+                                <i class="fa-solid fa-plus"></i> Add Lesson
+                            </button>
+                        </div>
+
+                        <div class="day-chips" id="simDayChips">
+                            <div class="day-chip active" data-day="Monday" onclick="switchSimTimetableDay('Monday', this)">Mon</div>
+                            <div class="day-chip" data-day="Tuesday" onclick="switchSimTimetableDay('Tuesday', this)">Tue</div>
+                            <div class="day-chip" data-day="Wednesday" onclick="switchSimTimetableDay('Wednesday', this)">Wed</div>
+                            <div class="day-chip" data-day="Thursday" onclick="switchSimTimetableDay('Thursday', this)">Thu</div>
+                            <div class="day-chip" data-day="Friday" onclick="switchSimTimetableDay('Friday', this)">Fri</div>
+                            <div class="day-chip" data-day="Saturday" onclick="switchSimTimetableDay('Saturday', this)">Sat</div>
+                        </div>
+
+                        <div id="simTimetableSlotsContainer"></div>
+                    </div>
+
+                    <!-- TAB 5: SETTINGS (Toggle Theme, FAQs, Help & Support, App Version) -->
+                    <div id="tab-settings" class="tab-pane">
+                        <div class="m-card" style="display:flex;align-items:center;gap:12px;">
+                            <div style="width:48px;height:48px;border-radius:14px;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05rem;">KE</div>
+                            <div>
+                                <div style="font-size:0.9rem;font-weight:800;color:var(--navy);">Tr. Kato Emmanuel</div>
+                                <div style="font-size:0.72rem;color:var(--muted);">kato.emmanuel@axschool.ug &bull; 0772651444</div>
+                                <div style="font-size:0.68rem;color:var(--teal);font-weight:700;margin-top:2px;">AX High School</div>
+                            </div>
+                        </div>
+
+                        <div class="m-card">
+                            <div style="font-size:0.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Appearance &amp; Alerts</div>
+
+                            <!-- Toggle Theme -->
+                            <button type="button" class="s-row" onclick="toggleSimTheme()">
+                                <span><i class="fa-solid fa-moon" id="simThemeIcon" style="color:var(--amber);width:20px;"></i> Toggle Theme (<span id="simThemeLabel">Light</span>)</span>
+                                <span id="simThemeSwitch" class="theme-switch"></span>
+                            </button>
+
+                            <!-- Notifications -->
+                            <div class="s-row">
+                                <span><i class="fa-solid fa-bell" style="color:var(--teal);width:20px;"></i> Announcement Notifications</span>
+                                <input type="checkbox" checked style="accent-color:var(--teal);width:16px;height:16px;">
+                            </div>
+                        </div>
+
+                        <div class="m-card">
+                            <div style="font-size:0.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Support &amp; App Info</div>
+
+                            <!-- FAQs -->
+                            <button type="button" class="s-row" onclick="openDrawer('faqDrawer')">
+                                <span><i class="fa-solid fa-circle-question" style="color:var(--blue);width:20px;"></i> FAQs</span>
+                                <i class="fa-solid fa-chevron-right" style="font-size:0.7rem;color:var(--muted);"></i>
+                            </button>
+
+                            <!-- Help & Support -->
+                            <button type="button" class="s-row" onclick="openDrawer('supportDrawer')">
+                                <span><i class="fa-solid fa-headset" style="color:var(--green);width:20px;"></i> Help &amp; Support</span>
+                                <i class="fa-solid fa-chevron-right" style="font-size:0.7rem;color:var(--muted);"></i>
+                            </button>
+
+                            <!-- App Version -->
+                            <button type="button" class="s-row" onclick="openDrawer('versionDrawer')">
+                                <span><i class="fa-brands fa-android" style="color:var(--teal);width:20px;"></i> App Version</span>
+                                <span style="font-size:0.7rem;font-weight:800;color:var(--teal);background:var(--teal-light);padding:3px 8px;border-radius:999px;">v2.4.0 (Build 104)</span>
+                            </button>
+                        </div>
+
+                        <button type="button" onclick="showSimScreen('login1')" class="m-card" style="width:100%;background:rgba(254,226,226,0.45);border-color:#fecaca;color:#dc2626;font-weight:800;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                            <span>Sign Out of Mobile App</span>
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- BOTTOM NAVIGATION MENU: Home, Attendance, Record Marks, Timetable, Settings -->
+                <nav class="app-bottom-nav">
+                    <button type="button" class="b-nav-item active" data-tab="home" onclick="selectTab('home')">
+                        <i class="fa-solid fa-house"></i>
+                        <span>Home</span>
+                    </button>
+                    <button type="button" class="b-nav-item" data-tab="attendance" onclick="selectTab('attendance')">
+                        <i class="fa-solid fa-clipboard-user"></i>
+                        <span>Attendance</span>
+                    </button>
+                    <button type="button" class="b-nav-item" data-tab="marks" onclick="selectTab('marks')">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Record Marks</span>
+                    </button>
+                    <button type="button" class="b-nav-item" data-tab="timetable" onclick="selectTab('timetable')">
+                        <i class="fa-solid fa-calendar-days"></i>
+                        <span>Timetable</span>
+                    </button>
+                    <button type="button" class="b-nav-item" data-tab="settings" onclick="selectTab('settings')">
+                        <i class="fa-solid fa-gear"></i>
+                        <span>Settings</span>
+                    </button>
+                </nav>
+
+                <!-- ADD LESSON DRAWER -->
+                <div id="addLessonDrawer" class="drawer-overlay" onclick="if(event.target===this) closeDrawer('addLessonDrawer')">
+                    <div class="drawer-sheet">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <strong style="font-size:0.92rem;color:var(--navy);"><i class="fa-solid fa-calendar-plus" style="color:var(--teal);margin-right:6px;"></i>Add Lesson to Timetable</strong>
+                            <button type="button" onclick="closeDrawer('addLessonDrawer')" style="border:none;background:var(--input-bg);color:var(--navy);width:28px;height:28px;border-radius:50%;cursor:pointer;">&times;</button>
+                        </div>
+
+                        <div class="f-group">
+                            <label class="f-label">Select Day</label>
+                            <select id="simTtDay" class="f-input" style="padding:9px 11px;font-size:0.8rem;">
+                                <option value="Monday">Monday</option>
+                                <option value="Tuesday">Tuesday</option>
+                                <option value="Wednesday">Wednesday</option>
+                                <option value="Thursday">Thursday</option>
+                                <option value="Friday">Friday</option>
+                                <option value="Saturday">Saturday</option>
+                            </select>
+                        </div>
+
+                        <div class="f-group">
+                            <label class="f-label">Select Subject (Only Assigned to You)</label>
+                            <select id="simTtSubject" class="f-input" style="padding:9px 11px;font-size:0.8rem;">
+                                <option value="Mathematics">Mathematics</option>
+                                <option value="Physics">Physics</option>
+                                <option value="Chemistry">Chemistry</option>
+                            </select>
+                        </div>
+
+                        <div class="f-group">
+                            <label class="f-label">Select Class (Only Accessible Classes)</label>
+                            <select id="simTtClass" class="f-input" style="padding:9px 11px;font-size:0.8rem;">
+                                <option value="Senior 1 (East)">Senior 1 (East)</option>
+                                <option value="Senior 2 (North)">Senior 2 (North)</option>
+                                <option value="Senior 3 (West)">Senior 3 (West)</option>
+                                <option value="Senior 4 (South)">Senior 4 (South)</option>
+                            </select>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+                            <div>
+                                <label class="f-label">Time Begins</label>
+                                <input type="time" id="simTtStart" class="f-input" style="padding:9px 11px;font-size:0.8rem;" value="11:00">
+                            </div>
+                            <div>
+                                <label class="f-label">Time Ends</label>
+                                <input type="time" id="simTtEnd" class="f-input" style="padding:9px 11px;font-size:0.8rem;" value="11:45">
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn-teal" onclick="saveSimLesson(false)">
+                            <i class="fa-solid fa-check"></i>
+                            <span>Save to Main Timetable</span>
+                        </button>
+                        <button type="button" class="btn-teal" style="background:var(--input-bg);color:var(--teal);border:1.5px solid var(--teal);box-shadow:none;margin-top:6px;" onclick="saveSimLesson(true)">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Save &amp; Add Another on Same Day</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- FAQs DRAWER -->
+                <div id="faqDrawer" class="drawer-overlay" onclick="if(event.target===this) closeDrawer('faqDrawer')">
+                    <div class="drawer-sheet">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <strong style="font-size:0.92rem;color:var(--navy);"><i class="fa-solid fa-circle-question" style="color:var(--blue);margin-right:6px;"></i>FAQs</strong>
+                            <button type="button" onclick="closeDrawer('faqDrawer')" style="border:none;background:var(--input-bg);color:var(--navy);width:28px;height:28px;border-radius:50%;cursor:pointer;">&times;</button>
+                        </div>
+                        <div class="m-card" style="font-size:0.75rem;line-height:1.45;">
+                            <strong style="color:var(--navy);">1. How does the 60-minute Attendance Edit window work?</strong>
+                            <p style="color:var(--subtext);margin-top:4px;">You can edit taken attendance within the first <strong>60 minutes</strong>. After 60 minutes, it locks and the next roll call is saved as a new attendance session.</p>
+                        </div>
+                        <div class="m-card" style="font-size:0.75rem;line-height:1.45;">
+                            <strong style="color:var(--navy);">2. Are my Timetable lessons saved in the main system?</strong>
+                            <p style="color:var(--subtext);margin-top:4px;">Yes! Lessons you add on the mobile app are saved directly into the main school timetable and you can add multiple lessons on the same day.</p>
+                        </div>
+                        <div class="m-card" style="font-size:0.75rem;line-height:1.45;">
+                            <strong style="color:var(--navy);">3. What happens when I am offline?</strong>
+                            <p style="color:var(--subtext);margin-top:4px;">If your internet connection drops, the app immediately alerts you to reconnect to Wi-Fi or Mobile Data.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HELP & SUPPORT DRAWER -->
+                <div id="supportDrawer" class="drawer-overlay" onclick="if(event.target===this) closeDrawer('supportDrawer')">
+                    <div class="drawer-sheet">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <strong style="font-size:0.92rem;color:var(--navy);"><i class="fa-solid fa-headset" style="color:var(--green);margin-right:6px;"></i>Help &amp; Support</strong>
+                            <button type="button" onclick="closeDrawer('supportDrawer')" style="border:none;background:var(--input-bg);color:var(--navy);width:28px;height:28px;border-radius:50%;cursor:pointer;">&times;</button>
+                        </div>
+                        <div class="m-card" style="display:flex;align-items:center;gap:10px;">
+                            <i class="fa-brands fa-whatsapp" style="font-size:1.3rem;color:#16a34a;"></i>
+                            <div>
+                                <div style="font-size:0.8rem;font-weight:800;color:var(--navy);">WhatsApp Support</div>
+                                <div style="font-size:0.7rem;color:var(--muted);">+256 772 651 444</div>
+                            </div>
+                        </div>
+                        <div class="m-card" style="display:flex;align-items:center;gap:10px;">
+                            <i class="fa-solid fa-phone" style="font-size:1.1rem;color:#2563eb;"></i>
+                            <div>
+                                <div style="font-size:0.8rem;font-weight:800;color:var(--navy);">Support Helpline</div>
+                                <div style="font-size:0.7rem;color:var(--muted);">+256 772 651 444 / +256 783 680 832</div>
+                            </div>
+                        </div>
+                        <div class="m-card" style="display:flex;align-items:center;gap:10px;">
+                            <i class="fa-solid fa-envelope" style="font-size:1.1rem;color:#d97706;"></i>
+                            <div>
+                                <div style="font-size:0.8rem;font-weight:800;color:var(--navy);">Email Support</div>
+                                <div style="font-size:0.7rem;color:var(--muted);">support@axtechnologies.net</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- APP VERSION DRAWER -->
+                <div id="versionDrawer" class="drawer-overlay" onclick="if(event.target===this) closeDrawer('versionDrawer')">
+                    <div class="drawer-sheet" style="text-align:center;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <strong style="font-size:0.92rem;color:var(--navy);">App Version</strong>
+                            <button type="button" onclick="closeDrawer('versionDrawer')" style="border:none;background:var(--input-bg);color:var(--navy);width:28px;height:28px;border-radius:50%;cursor:pointer;">&times;</button>
+                        </div>
+                        <div style="font-size:1rem;font-weight:800;color:var(--navy);">SmartSchool.ug Android App</div>
+                        <div style="font-size:0.76rem;color:var(--teal);font-weight:700;margin:4px 0 12px;">Version 2.4.0 &bull; Build 104 (Up to Date)</div>
+                        <p style="font-size:0.73rem;color:var(--subtext);line-height:1.45;">Powered by AX Technologies &copy; 2026</p>
+                    </div>
+                </div>
+
+                <!-- Notifications Drawer -->
+                <div id="notifDrawer" class="drawer-overlay" onclick="if(event.target===this) closeDrawer('notifDrawer')">
+                    <div class="drawer-sheet">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <strong style="font-size:0.92rem;color:var(--navy);"><i class="fa-solid fa-bell" style="color:var(--teal);margin-right:6px;"></i>School Notifications</strong>
+                            <button type="button" onclick="closeDrawer('notifDrawer')" style="border:none;background:var(--input-bg);color:var(--navy);width:28px;height:28px;border-radius:50%;cursor:pointer;">&times;</button>
+                        </div>
+                        <div class="m-card" style="border-left:4px solid #dc2626;">
+                            <strong style="font-size:0.78rem;color:var(--navy);">Deadline: Mid-Term Marks Entry</strong>
+                            <p style="font-size:0.72rem;color:var(--subtext);margin-top:3px;">Please submit all MOT scores by Friday 5:00 PM.</p>
+                        </div>
+                        <div class="m-card" style="border-left:4px solid #0d9488;">
+                            <strong style="font-size:0.78rem;color:var(--navy);">Staff Briefing Tomorrow 8:00 AM</strong>
+                            <p style="font-size:0.72rem;color:var(--subtext);margin-top:3px;">Quick morning briefing in the main staffroom.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Drawer -->
+                <div id="profileDrawer" class="drawer-overlay" onclick="if(event.target===this) closeDrawer('profileDrawer')">
+                    <div class="drawer-sheet" style="text-align:center;">
+                        <div style="width:54px;height:54px;border-radius:16px;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;margin:0 auto 8px;">KE</div>
+                        <div style="font-size:0.95rem;font-weight:800;color:var(--navy);">Tr. Kato Emmanuel</div>
+                        <div style="font-size:0.74rem;color:var(--muted);margin-bottom:14px;">Mathematics &amp; Physics &bull; AX High School</div>
+                        <button type="button" class="btn-teal" onclick="closeDrawer('profileDrawer');selectTab('settings');">
+                            <i class="fa-solid fa-gear"></i> Open Settings
+                        </button>
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
 
     <script>
-        function showLoginStep(step) {
-            document.getElementById('screen-app').classList.remove('active');
-            document.getElementById('screen-login').classList.add('active');
-            document.getElementById('simStep1').style.display = (step === 1) ? 'block' : 'none';
-            document.getElementById('simStep2').style.display = (step === 2) ? 'block' : 'none';
+        var simCurrentDay = 'Monday';
+        var simAttMode = 'new'; // 'new' | 'edit' | 'locked'
+        var simLessons = {
+            'Monday': [
+                { subject: 'Mathematics', cls: 'Senior 2 (North)', start: '08:00', end: '08:45' },
+                { subject: 'Physics', cls: 'Senior 3 (West)', start: '09:30', end: '10:15' }
+            ],
+            'Tuesday': [
+                { subject: 'Chemistry', cls: 'Senior 4 (South)', start: '08:45', end: '09:30' }
+            ],
+            'Wednesday': [],
+            'Thursday': [],
+            'Friday': [],
+            'Saturday': []
+        };
 
-            document.getElementById('btnShowLogin1').classList.toggle('active', step === 1);
-            document.getElementById('btnShowLogin2').classList.toggle('active', step === 2);
-            document.getElementById('btnShowApp').classList.remove('active');
+        function format12h(t) {
+            if (!t) return '';
+            var parts = t.split(':');
+            var h = parseInt(parts[0], 10);
+            var m = parts[1];
+            var ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12;
+            if (h === 0) h = 12;
+            return h + ':' + m + ' ' + ampm;
         }
 
-        function showMainApp() {
-            document.getElementById('screen-login').classList.remove('active');
-            document.getElementById('screen-app').classList.add('active');
+        function renderSimTimetable() {
+            var container = document.getElementById('simTimetableSlotsContainer');
+            var list = simLessons[simCurrentDay] || [];
+            if (!list.length) {
+                container.innerHTML = '<div class="m-card" style="text-align:center;color:var(--muted);padding:22px 12px;font-size:0.78rem;">' +
+                    '<i class="fa-regular fa-calendar-plus" style="font-size:1.4rem;margin-bottom:6px;display:block;"></i>' +
+                    'No lessons scheduled for ' + simCurrentDay + ' yet.<br>' +
+                    '<button type="button" onclick="openDrawer(\'addLessonDrawer\')" style="margin-top:8px;background:var(--teal-light);color:var(--teal);border:1px solid #99f6e4;border-radius:8px;padding:5px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;">+ Add ' + simCurrentDay + ' Lesson</button>' +
+                '</div>';
+                return;
+            }
+            var html = '';
+            list.forEach(function(item, idx) {
+                html += '<div class="m-card" style="border-left:4px solid var(--teal);display:flex;justify-content:space-between;align-items:center;">' +
+                    '<div>' +
+                        '<div style="font-size:0.84rem;font-weight:800;color:var(--navy);">' + item.subject + '</div>' +
+                        '<div style="font-size:0.72rem;color:var(--subtext);margin-top:2px;"><i class="fa-solid fa-chalkboard" style="color:var(--teal);margin-right:4px;"></i>' + item.cls + '</div>' +
+                    '</div>' +
+                    '<div style="display:flex;align-items:center;gap:6px;">' +
+                        '<span style="background:var(--teal-light);color:var(--teal);border:1px solid #99f6e4;padding:4px 8px;border-radius:7px;font-size:0.68rem;font-weight:800;">' + format12h(item.start) + ' - ' + format12h(item.end) + '</span>' +
+                        '<button type="button" onclick="removeSimLesson(' + idx + ')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.8rem;"><i class="fa-regular fa-trash-can"></i></button>' +
+                    '</div>' +
+                '</div>';
+            });
+            container.innerHTML = html;
+        }
 
-            document.getElementById('btnShowLogin1').classList.remove('active');
-            document.getElementById('btnShowLogin2').classList.remove('active');
-            document.getElementById('btnShowApp').classList.add('active');
+        function switchSimTimetableDay(day, chipEl) {
+            simCurrentDay = day;
+            document.getElementById('simTtDay').value = day;
+            document.querySelectorAll('#simDayChips .day-chip').forEach(function(c) {
+                c.classList.toggle('active', c.getAttribute('data-day') === day);
+            });
+            renderSimTimetable();
+        }
+
+        function saveSimLesson(keepOpen) {
+            var day = document.getElementById('simTtDay').value;
+            var subj = document.getElementById('simTtSubject').value;
+            var cls = document.getElementById('simTtClass').value;
+            var start = document.getElementById('simTtStart').value;
+            var end = document.getElementById('simTtEnd').value;
+
+            if (!start || !end || end <= start) {
+                popToast('End time must be after Start time');
+                return;
+            }
+
+            if (!simLessons[day]) simLessons[day] = [];
+            simLessons[day].push({ subject: subj, cls: cls, start: start, end: end });
+            switchSimTimetableDay(day);
+            popToast('Saved to Main System Timetable!');
+
+            if (keepOpen) {
+                document.getElementById('simTtStart').value = end;
+            } else {
+                closeDrawer('addLessonDrawer');
+            }
+        }
+
+        function removeSimLesson(idx) {
+            simLessons[simCurrentDay].splice(idx, 1);
+            renderSimTimetable();
+            popToast('Lesson removed');
+        }
+
+        // Attendance 60-Min Window Simulation
+        function saveSimAttendance() {
+            var banner = document.getElementById('simAttBanner');
+            var txt = document.getElementById('simAttBannerText');
+            var badge = document.getElementById('simAttTimerBadge');
+            var btnLbl = document.getElementById('simAttSaveLabel');
+            var ffBar = document.getElementById('simFastForwardBar');
+
+            if (simAttMode === 'edit') {
+                popToast('Attendance updated within 60-min window!');
+            } else {
+                simAttMode = 'edit';
+                banner.className = 'att-banner edit';
+                txt.innerHTML = '<i class="fa-solid fa-pen-clip"></i> <strong>Editing Active Session</strong> — Editable for first 60 minutes.';
+                badge.textContent = '59m left';
+                btnLbl.textContent = 'Update Attendance (59m left)';
+                ffBar.style.display = 'block';
+                popToast('Attendance saved! Editable for 60 mins.');
+            }
+        }
+
+        function simulateExpire60Mins() {
+            simAttMode = 'locked';
+            var banner = document.getElementById('simAttBanner');
+            var txt = document.getElementById('simAttBannerText');
+            var badge = document.getElementById('simAttTimerBadge');
+            var btnLbl = document.getElementById('simAttSaveLabel');
+            var ffBar = document.getElementById('simFastForwardBar');
+
+            banner.className = 'att-banner locked';
+            txt.innerHTML = '<i class="fa-solid fa-lock"></i> <strong>Previous Session Locked (&gt;60m)</strong>. Next attendance is treated as a <strong>NEW attendance</strong>.';
+            badge.textContent = 'New Session';
+            btnLbl.textContent = 'Save New Attendance Session';
+            ffBar.style.display = 'none';
+            popToast('60 mins elapsed! Ready for new attendance.');
+        }
+
+        // Theme Toggle
+        function toggleSimTheme() {
+            var root = document.getElementById('phoneScreenRoot');
+            var sw = document.getElementById('simThemeSwitch');
+            var lbl = document.getElementById('simThemeLabel');
+            var icon = document.getElementById('simThemeIcon');
+            var isDark = root.getAttribute('data-theme') === 'dark';
+
+            if (isDark) {
+                root.removeAttribute('data-theme');
+                sw.classList.remove('active');
+                lbl.textContent = 'Light';
+                icon.className = 'fa-solid fa-moon';
+                popToast('Switched to Light Theme');
+            } else {
+                root.setAttribute('data-theme', 'dark');
+                sw.classList.add('active');
+                lbl.textContent = 'Dark';
+                icon.className = 'fa-solid fa-sun';
+                popToast('Switched to Dark Theme');
+            }
+        }
+
+        // Offline Simulation
+        function toggleSimOffline(forceState) {
+            var overlay = document.getElementById('simOfflineOverlay');
+            var btn = document.getElementById('btnSimOffline');
+            var wifiIcon = document.getElementById('statusWifiIcon');
+            var willBeOffline = typeof forceState === 'boolean' ? forceState : !overlay.classList.contains('active');
+
+            if (willBeOffline) {
+                overlay.classList.add('active');
+                btn.classList.add('active');
+                wifiIcon.style.opacity = '0.25';
+            } else {
+                overlay.classList.remove('active');
+                btn.classList.remove('active');
+                wifiIcon.style.opacity = '1';
+                popToast('Back online! Connected to SmartSchool.ug');
+            }
+        }
+
+        window.addEventListener('offline', function() { toggleSimOffline(true); });
+        window.addEventListener('online', function() { toggleSimOffline(false); });
+
+        function showSimScreen(mode) {
+            document.getElementById('btnSimLogin1').classList.toggle('active', mode === 'login1');
+            document.getElementById('btnSimLogin2').classList.toggle('active', mode === 'login2');
+            document.getElementById('btnSimApp').classList.toggle('active', mode === 'app');
+
+            var sLogin = document.getElementById('screen-login');
+            var sApp = document.getElementById('screen-app');
+
+            if (mode === 'login1' || mode === 'login2') {
+                sLogin.classList.add('active');
+                sApp.classList.remove('active');
+                document.getElementById('loginStep1').style.display = mode === 'login1' ? 'block' : 'none';
+                document.getElementById('loginStep2').style.display = mode === 'login2' ? 'block' : 'none';
+            } else {
+                sLogin.classList.remove('active');
+                sApp.classList.add('active');
+            }
         }
 
         function selectTab(tab) {
-            document.querySelectorAll('.tab-view').forEach(function(el) { el.classList.remove('active'); });
+            document.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('active'); });
             document.getElementById('tab-' + tab).classList.add('active');
-
-            document.querySelectorAll('.b-tab').forEach(function(btn) {
-                btn.classList.toggle('active', btn.getAttribute('data-target') === tab);
+            document.querySelectorAll('.b-nav-item').forEach(function(b) {
+                b.classList.toggle('active', b.getAttribute('data-tab') === tab);
             });
         }
 
-        function toggleDrawer(id) {
-            document.getElementById(id).classList.toggle('open');
-        }
-
-        function cycleAtt(btn) {
+        function toggleSimAtt(btn, code) {
             var parent = btn.parentElement;
-            parent.querySelectorAll('.att-btn').forEach(function(b) {
-                b.className = 'att-btn';
-            });
-            btn.classList.add(btn.textContent.trim());
+            parent.querySelectorAll('.att-btn').forEach(function(b) { b.className = 'att-btn'; });
+            btn.className = 'att-btn ' + code;
         }
+
+        function openDrawer(id) { document.getElementById(id).classList.add('open'); }
+        function closeDrawer(id) { document.getElementById(id).classList.remove('open'); }
+
+        function popToast(msg) {
+            var t = document.getElementById('simToast');
+            document.getElementById('simToastText').textContent = msg;
+            t.style.display = 'inline-flex';
+            setTimeout(function() { t.style.display = 'none'; }, 2400);
+        }
+
+        // Initial render
+        renderSimTimetable();
     </script>
 </body>
 </html>
-
