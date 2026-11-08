@@ -55,6 +55,22 @@
     </image:image>
   </url>
 
+  <!-- 4. CampusDesk: Multi-Campus Institution ERP & Student Portal Deep Dive -->
+  <url>
+    <loc>https://axtechnologies.net/campusdesk.html</loc>
+    <lastmod>2026-11-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+    <image:image>
+      <image:loc>https://axtechnologies.net/CampusDesk%20Education%20Logo.png</image:loc>
+      <image:title>CampusDesk Education Logo</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://axtechnologies.net/campusdesk%20dashboard.png</image:loc>
+      <image:title>CampusDesk Multi-Campus Admin Dashboard and Student Quotas</image:title>
+    </image:image>
+  </url>
+
   <!-- 4. Systems Hub: Ecosystem of All Products -->
   <url>
     <loc>https://axtechnologies.net/systems.html</loc>
