@@ -228,7 +228,11 @@ if (!$request->ajax() && (stripos($contentType, 'text/html') !== false || $conte
         }
 
         $tenant = (string) ($_SERVER['SMARTSCHOOL_TENANT'] ?? '');
-        $content = axInjectPwaTags($content, $scriptDir, '#0d9488', 'SmartSchool.ug', $tenant);
+        $ua = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
+        $isMobileAppRoute = (stripos($relPath, 'mobile') !== false || stripos($ua, 'SmartSchoolAndroid') !== false || stripos($ua, '; wv)') !== false);
+        if (!$isMobileAppRoute) {
+            $content = axInjectPwaTags($content, $scriptDir, '#0d9488', 'SmartSchool.ug', $tenant);
+        }
         $response->setContent($content);
     }
 }
