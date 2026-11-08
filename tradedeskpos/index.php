@@ -55,7 +55,21 @@ $mimeMap = [
     'woff2' => 'font/woff2',
     'ttf'   => 'font/ttf',
     'pdf'   => 'application/pdf',
+    'apk'   => 'application/vnd.android.package-archive',
 ];
+
+// Direct APK Download endpoint (/tradedeskpos/download, /tradedeskpos/TradeDesk.apk, /tradedeskpos/download-app)
+if (preg_match('#^(download|download-app|tradedesk\.apk)$#i', strtolower($relPath))) {
+    $apkPath = __DIR__ . '/TradeDesk.apk';
+    if (file_exists($apkPath)) {
+        header('Content-Type: application/vnd.android.package-archive');
+        header('Content-Disposition: attachment; filename="TradeDesk.apk"');
+        header('Content-Length: ' . filesize($apkPath));
+        header('Cache-Control: public, max-age=3600');
+        readfile($apkPath);
+        exit;
+    }
+}
 
 // 1. Handle Backend API & Storage routes (/tradedeskpos/api/*, /tradedeskpos/storage/*)
 if (preg_match('#^(api|sanctum|storage|uploads)(/|$)#i', $relPath)) {
