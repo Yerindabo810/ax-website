@@ -18,6 +18,9 @@ $reservedCentral = [
     'index.php',
     'login',
     'logout',
+    'mobile',
+    'download-app',
+    'SmartSchool.apk',
     'password',
     'reset',
     'home',
@@ -116,6 +119,7 @@ if ($relPath !== '' && $relPath !== 'index.php') {
             'ttf'   => 'font/ttf',
             'eot'   => 'application/vnd.ms-fontobject',
             'pdf'   => 'application/pdf',
+            'apk'   => 'application/vnd.android.package-archive',
             'mp4'   => 'video/mp4',
             'webm'  => 'video/webm',
         ];
