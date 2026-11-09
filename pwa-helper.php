@@ -248,7 +248,19 @@ JS;
 
   var isStandalone =
     window.matchMedia('(display-mode: standalone)').matches ||
-    window.navigator.standalone === true;
+    window.navigator.standalone === true ||
+    window.__AX_NATIVE_APP__ === true ||
+    Boolean(window.TradeDeskNative) ||
+    Boolean(window.androidBridge) ||
+    Boolean(window.Android) ||
+    Boolean(window.webkit && window.webkit.messageHandlers) ||
+    navigator.userAgent.indexOf('TradeDeskApp') !== -1 ||
+    navigator.userAgent.indexOf('SmartSchoolApp') !== -1 ||
+    navigator.userAgent.indexOf('; wv') !== -1 ||
+    navigator.userAgent.indexOf('AndroidWebView') !== -1 ||
+    window.location.protocol === 'file:' ||
+    sessionStorage.getItem('is_native_app') === '1' ||
+    localStorage.getItem('is_native_app') === '1';
 
   function detectTenantFromUrl() {
     var path = window.location.pathname || '';
@@ -324,6 +336,7 @@ JS;
   });
 
   function showInstallModal() {
+    if (isStandalone || window.__AX_NATIVE_APP__ || window.TradeDeskNative || window.androidBridge || window.Android || window.location.protocol === 'file:') return;
     var existing = document.getElementById('ax-pwa-modal');
     if (existing) existing.remove();
 
@@ -385,6 +398,9 @@ JS;
   window.axTriggerPwaInstall = triggerInstall;
 
   function showInstallBanner() {
+    if (isStandalone || window.__AX_NATIVE_APP__ || window.TradeDeskNative || window.androidBridge || window.Android || window.location.protocol === 'file:') return;
+    if (navigator.userAgent.indexOf('TradeDeskApp') !== -1 || navigator.userAgent.indexOf('SmartSchoolApp') !== -1 || navigator.userAgent.indexOf('; wv') !== -1) return;
+    if (sessionStorage.getItem('is_native_app') === '1' || localStorage.getItem('is_native_app') === '1') return;
     if (sessionStorage.getItem('ax_pwa_dismissed_' + SHORT_NAME) === '1') return;
     if (document.getElementById('ax-pwa-install-pill')) return;
 
