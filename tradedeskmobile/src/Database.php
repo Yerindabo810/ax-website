@@ -68,6 +68,8 @@ class Database
                 `email` VARCHAR(150) NOT NULL,
                 `phone` VARCHAR(40) DEFAULT NULL,
                 `password` VARCHAR(255) NOT NULL,
+                `firebase_uid` VARCHAR(128) DEFAULT NULL,
+                `auth_provider` VARCHAR(20) NOT NULL DEFAULT 'email',
                 `role` VARCHAR(30) NOT NULL DEFAULT 'owner',
                 `two_factor_enabled` TINYINT(1) NOT NULL DEFAULT 0,
                 `is_verified` TINYINT(1) NOT NULL DEFAULT 1,
@@ -135,5 +137,11 @@ class Database
         foreach ($tables as $sql) {
             $pdo->exec($sql);
         }
+        try {
+            $pdo->exec("ALTER TABLE `mobile_users` ADD COLUMN `firebase_uid` VARCHAR(128) DEFAULT NULL");
+        } catch (Throwable $e) {}
+        try {
+            $pdo->exec("ALTER TABLE `mobile_users` ADD COLUMN `auth_provider` VARCHAR(20) NOT NULL DEFAULT 'email'");
+        } catch (Throwable $e) {}
     }
 }

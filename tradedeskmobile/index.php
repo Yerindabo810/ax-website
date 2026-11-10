@@ -686,6 +686,89 @@ try {
         ]);
     }
 
+    // POST /auth/google-login (Exact same logic as TradeDesk Web App AuthController::googleLogin)
+    if ($route === 'auth/google-login' && $method === 'POST') {
+        $email = strtolower(trim((string) ($input['email'] ?? '')));
+        $firebaseUid = trim((string) ($input['firebase_uid'] ?? ''));
+        $name = trim((string) ($input['name'] ?? ''));
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            jsonResponse(['message' => 'A valid Google email address is required.'], 422);
+        }
+
+        if ($firebaseUid !== '') {
+            $uStmt = $pdo->prepare("SELECT * FROM mobile_users WHERE email = ? OR firebase_uid = ? LIMIT 1");
+            $uStmt->execute([$email, $firebaseUid]);
+        } else {
+            $uStmt = $pdo->prepare("SELECT * FROM mobile_users WHERE email = ? LIMIT 1");
+            $uStmt->execute([$email]);
+        }
+        $user = $uStmt->fetch();
+
+        if (!$user) {
+            jsonResponse([
+                'success' => false,
+                'is_new' => true,
+                'email' => $email,
+                'name' => $name,
+                'firebase_uid' => $firebaseUid,
+                'message' => 'User not registered yet. Please complete business setup.',
+            ]);
+        }
+
+        if ($firebaseUid !== '' && empty($user['firebase_uid'])) {
+            $pdo->prepare("UPDATE mobile_users SET firebase_uid = ? WHERE id = ?")->execute([$firebaseUid, $user['id']]);
+        }
+
+        $bStmt = $pdo->prepare("SELECT * FROM mobile_businesses WHERE id = ? LIMIT 1");
+        $bStmt->execute([$user['business_id']]);
+        $biz = $bStmt->fetch();
+
+        if (!$biz) {
+            jsonResponse([
+                'success' => false,
+                'needs_setup' => true,
+                'message' => 'Account found, but business profile setup is pending.',
+                'user' => [
+                    'id' => (int) $user['id'],
+                    'name' => $user['name'],
+                    'email' => $user['email'],
+                    'phone' => $user['phone'],
+                ],
+            ]);
+        }
+
+        // Check Two-Factor Authentication
+        if ((int) ($user['two_factor_enabled'] ?? 0) === 1) {
+            $otp = (string) random_int(100000, 999999);
+            $expiresAt = date('Y-m-d H:i:s', time() + 10 * 60);
+            $pdo->prepare("INSERT INTO mobile_email_otps (email, otp, expires_at, is_used) VALUES (?, ?, ?, 0)")
+                ->execute([$user['email'], $otp, $expiresAt]);
+
+            $mailer->send($user['email'], "{$otp} is your TradeDesk Mobile login code", "<p>Your 6-digit login verification code is: <strong>{$otp}</strong></p>");
+            $masked = maskEmailAddress($user['email']);
+
+            jsonResponse([
+                'success' => true,
+                'requires_otp' => true,
+                'email' => $user['email'],
+                'masked_email' => $masked,
+                'message' => "Two-Factor Authentication is enabled. A 6-digit verification code has been sent to {$masked}.",
+            ]);
+        }
+
+        $apiToken = bin2hex(random_bytes(32));
+        $pdo->prepare("UPDATE mobile_users SET api_token = ? WHERE id = ?")->execute([$apiToken, $user['id']]);
+
+        jsonResponse([
+            'success' => true,
+            'message' => 'Google login successful!',
+            'token' => $apiToken,
+            'user' => formatUserPayload($user, $biz),
+            'business' => formatBusinessPayload($biz),
+        ]);
+    }
+
     // POST /auth/google-send-otp (Send 6-digit code for Google Sign-In / Sign-Up)
     if ($route === 'auth/google-send-otp' && $method === 'POST') {
         $email = strtolower(trim((string) ($input['email'] ?? '')));
