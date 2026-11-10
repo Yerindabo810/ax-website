@@ -5,6 +5,22 @@
  * Loads all credentials from .env
  */
 
+if (!function_exists('str_starts_with')) {
+    function str_starts_with(string $haystack, string $needle): bool {
+        return $needle === '' || strncmp($haystack, $needle, strlen($needle)) === 0;
+    }
+}
+if (!function_exists('str_ends_with')) {
+    function str_ends_with(string $haystack, string $needle): bool {
+        return $needle === '' || substr($haystack, -strlen($needle)) === $needle;
+    }
+}
+if (!function_exists('str_contains')) {
+    function str_contains(string $haystack, string $needle): bool {
+        return $needle === '' || strpos($haystack, $needle) !== false;
+    }
+}
+
 $envFile = __DIR__ . '/.env';
 if (is_file($envFile)) {
     $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -14,9 +30,9 @@ if (is_file($envFile)) {
             if ($trimmed === '' || str_starts_with($trimmed, '#') || !str_contains($trimmed, '=')) {
                 continue;
             }
-            [$key, $val] = explode('=', $trimmed, 2);
-            $key = trim($key);
-            $val = trim($val);
+            $parts = explode('=', $trimmed, 2);
+            $key = trim($parts[0]);
+            $val = trim($parts[1] ?? '');
             if (
                 (str_starts_with($val, '"') && str_ends_with($val, '"')) ||
                 (str_starts_with($val, "'") && str_ends_with($val, "'"))
@@ -24,7 +40,7 @@ if (is_file($envFile)) {
                 $val = substr($val, 1, -1);
             }
             $_ENV[$key] = $val;
-            putenv("{$key}={$val}");
+            @putenv("{$key}={$val}");
         }
     }
 }
