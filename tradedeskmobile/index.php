@@ -458,8 +458,8 @@ try {
             </p>
             <div style='background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin: 20px 0; font-size: 13px;'>
                 <div><strong>Shop Name:</strong> {$businessName}</div>
-                <div style='margin-top: 6px;'><strong>Shop ID / Subdomain:</strong> <code>{$subdomain}</code></div>
-                <div style='margin-top: 6px;'><strong>Owner Email:</strong> {$email}</div>
+                <div style='margin-top: 6px;'><strong>Login Email:</strong> {$email}</div>
+                " . ($phone ? "<div style='margin-top: 6px;'><strong>Login Phone:</strong> {$phone}</div>" : "") . "
                 <div style='margin-top: 6px;'><strong>Free Trial Valid Until:</strong> " . date('d M Y', strtotime($trialEndsAt)) . "</div>
             </div>
             <hr style='border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;' />
@@ -683,6 +683,102 @@ try {
         jsonResponse([
             'success' => true,
             'message' => 'A new 6-digit verification code has been sent to your email.',
+        ]);
+    }
+
+    // POST /auth/google-send-otp (Send 6-digit code for Google Sign-In / Sign-Up)
+    if ($route === 'auth/google-send-otp' && $method === 'POST') {
+        $email = strtolower(trim((string) ($input['email'] ?? '')));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            jsonResponse(['success' => false, 'message' => 'Please enter a valid Google email address.'], 422);
+        }
+
+        $otp = (string) random_int(100000, 999999);
+        $expiresAt = date('Y-m-d H:i:s', time() + 15 * 60);
+        $pdo->prepare("INSERT INTO mobile_email_otps (email, otp, expires_at, is_used) VALUES (?, ?, ?, 0)")
+            ->execute([$email, $otp, $expiresAt]);
+
+        $uStmt = $pdo->prepare("SELECT name FROM mobile_users WHERE email = ? LIMIT 1");
+        $uStmt->execute([$email]);
+        $existingUser = $uStmt->fetch();
+
+        $year = date('Y');
+        $html = "
+        <div style='font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;'>
+            <div style='text-align: center; margin-bottom: 20px;'>
+                <h2 style='color: #0b4fb8; margin: 0;'>Trade<span style='color: #f26a0e;'>Desk</span> Mobile</h2>
+                <p style='color: #64748b; font-size: 14px; margin-top: 4px;'>Google Account Sign-In</p>
+            </div>
+            <p style='color: #1e293b; font-size: 15px; line-height: 1.5;'>Your 6-digit Google verification code for <strong>TradeDesk Mobile</strong> is:</p>
+            <div style='text-align: center; margin: 24px 0;'>
+                <span style='display: inline-block; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #0a2a66; background: #f1f5f9; padding: 12px 28px; border-radius: 8px; border: 1px dashed #cbd5e1;'>{$otp}</span>
+            </div>
+            <p style='color: #64748b; font-size: 12px;'>This code expires in 15 minutes.</p>
+            <hr style='border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;' />
+            <p style='text-align: center; font-size: 12px; color: #94a3b8; margin: 0;'>&copy; {$year} TradeDesk Mobile &bull; AX Technologies Uganda.</p>
+        </div>";
+        $mailer->send($email, "{$otp} is your TradeDesk Mobile Google Sign-In code", $html);
+
+        jsonResponse([
+            'success' => true,
+            'is_existing_user' => (bool) $existingUser,
+            'user_name' => $existingUser['name'] ?? null,
+            'message' => 'Google verification code sent to ' . $email,
+        ]);
+    }
+
+    // POST /auth/google-verify (Verify Google OTP -> either Sign In existing user OR return needs_setup for new user)
+    if ($route === 'auth/google-verify' && $method === 'POST') {
+        $email = strtolower(trim((string) ($input['email'] ?? '')));
+        $otp = trim((string) ($input['otp'] ?? ''));
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($otp) !== 6) {
+            jsonResponse(['success' => false, 'message' => 'Please enter a valid 6-digit code.'], 422);
+        }
+
+        $stmt = $pdo->prepare("
+            SELECT id FROM mobile_email_otps
+            WHERE email = ? AND otp = ? AND is_used = 0 AND expires_at >= NOW()
+            ORDER BY id DESC LIMIT 1
+        ");
+        $stmt->execute([$email, $otp]);
+        $rec = $stmt->fetch();
+
+        if (!$rec) {
+            jsonResponse(['success' => false, 'message' => 'Invalid or expired verification code.'], 422);
+        }
+
+        $pdo->prepare("UPDATE mobile_email_otps SET is_used = 1 WHERE id = ?")->execute([$rec['id']]);
+
+        // Check if user already has a TradeDesk Mobile account
+        $uStmt = $pdo->prepare("SELECT * FROM mobile_users WHERE email = ? LIMIT 1");
+        $uStmt->execute([$email]);
+        $user = $uStmt->fetch();
+
+        if ($user) {
+            $bStmt = $pdo->prepare("SELECT * FROM mobile_businesses WHERE id = ? LIMIT 1");
+            $bStmt->execute([$user['business_id']]);
+            $biz = $bStmt->fetch();
+
+            $apiToken = bin2hex(random_bytes(32));
+            $pdo->prepare("UPDATE mobile_users SET api_token = ? WHERE id = ?")->execute([$apiToken, $user['id']]);
+
+            jsonResponse([
+                'success' => true,
+                'needs_setup' => false,
+                'message' => 'Signed in with Google successfully!',
+                'token' => $apiToken,
+                'user' => formatUserPayload($user, $biz),
+                'business' => $biz ? formatBusinessPayload($biz) : null,
+            ]);
+        }
+
+        // New Google user -> proceed to store setup
+        jsonResponse([
+            'success' => true,
+            'needs_setup' => true,
+            'email' => $email,
+            'message' => 'Google account verified. Complete your shop details.',
         ]);
     }
 
