@@ -1,0 +1,1158 @@
+<?php
+
+/**
+ * TradeDesk Mobile — Standalone Cloud Backend Entry Point (/tradedeskmobile/api/*)
+ * Dedicated Database: axtechno_tradedesk-mobile
+ * Completely isolated from the TradeDesk Web App (axtechno_tradedesk).
+ */
+
+declare(strict_types=1);
+
+use TradeDeskMobile\Database;
+use TradeDeskMobile\SmtpMailer;
+use TradeDeskMobile\MarzPayService;
+
+// CORS & JSON Headers
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, Accept, X-Requested-With');
+header('Content-Type: application/json; charset=utf-8');
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+
+$config = require __DIR__ . '/config.php';
+date_default_timezone_set($config['app']['timezone'] ?? 'Africa/Kampala');
+
+require_once __DIR__ . '/src/Database.php';
+require_once __DIR__ . '/src/SmtpMailer.php';
+require_once __DIR__ . '/src/MarzPayService.php';
+
+function jsonResponse(array $payload, int $status = 200): never
+{
+    http_response_code($status);
+    echo json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function getRequestBody(): array
+{
+    $raw = file_get_contents('php://input');
+    if ($raw) {
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            return array_merge($_GET, $_POST, $decoded);
+        }
+    }
+    return array_merge($_GET, $_POST);
+}
+
+function getBearerToken(): ?string
+{
+    $header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+    if (!$header && function_exists('apache_request_headers')) {
+        $headers = apache_request_headers();
+        $header = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    }
+    if (preg_match('/Bearer\s+(.+)/i', trim($header), $m)) {
+        return trim($m[1]);
+    }
+    return null;
+}
+
+function maskEmailAddress(string $email): string
+{
+    $parts = explode('@', $email);
+    $name = $parts[0] ?? '';
+    $domain = $parts[1] ?? '';
+    $masked = strlen($name) <= 2
+        ? substr($name, 0, 1) . '***'
+        : substr($name, 0, 2) . '***' . substr($name, -1);
+    return $masked . '@' . $domain;
+}
+
+function formatBusinessPayload(array $biz): array
+{
+    return [
+        'id' => (int) $biz['id'],
+        'name' => $biz['name'],
+        'subdomain' => $biz['subdomain'],
+        'category' => $biz['category'],
+        'location' => $biz['location'],
+        'phone' => $biz['phone'],
+        'currency' => $biz['currency'] ?? 'UGX',
+        'tin_number' => $biz['tin_number'] ?? null,
+        'logo_url' => $biz['logo_url'] ?? null,
+        'plan' => $biz['plan'] ?? 'free_trial',
+        'trial_ends_at' => $biz['trial_ends_at'] ?? null,
+        'subscription_expires_at' => $biz['subscription_expires_at'] ?? null,
+        'wallet_balance' => (float) ($biz['wallet_balance'] ?? 0),
+        'status' => $biz['status'] ?? 'active',
+        'branches' => [
+            [
+                'id' => '1',
+                'name' => $biz['name'] . ' (Mobile Solo Shop)',
+                'code' => 'SOLO-01',
+                'category' => $biz['category'],
+                'location' => $biz['location'],
+                'phone' => $biz['phone'],
+                'tills' => 1,
+                'manager' => 'Shop Owner',
+                'status' => 'Active',
+            ],
+        ],
+    ];
+}
+
+function formatUserPayload(array $user, ?array $biz = null): array
+{
+    return [
+        'id' => (int) $user['id'],
+        'business_id' => (int) $user['business_id'],
+        'name' => $user['name'],
+        'email' => $user['email'],
+        'phone' => $user['phone'],
+        'role' => $user['role'] ?? 'owner',
+        'branch_id' => '1',
+        'branch' => $biz ? [
+            'id' => '1',
+            'name' => $biz['name'] . ' (Mobile Solo Shop)',
+            'code' => 'SOLO-01',
+            'location' => $biz['location'],
+        ] : null,
+        'assigned_till' => 'TILL-01',
+        'status' => $user['status'] ?? 'Active',
+        'permissions' => ['*'],
+        'two_factor_enabled' => (bool) ($user['two_factor_enabled'] ?? false),
+    ];
+}
+
+// Parse request path relative to /tradedeskmobile
+$scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/tradedeskmobile/index.php')), '/');
+$requestPath = rawurldecode(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
+$relPath = ltrim(substr($requestPath, strlen($scriptDir)), '/');
+if (str_starts_with(strtolower($relPath), 'api/')) {
+    $route = substr($relPath, 4);
+} elseif (strtolower($relPath) === 'api') {
+    $route = '';
+} else {
+    $route = $relPath;
+}
+$route = trim($route, '/');
+$method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+$input = getRequestBody();
+
+try {
+    $pdo = Database::getConnection($config['db']);
+} catch (\Throwable $e) {
+    jsonResponse([
+        'status' => 'error',
+        'success' => false,
+        'message' => 'Database connection error: ' . $e->getMessage(),
+    ], 500);
+}
+
+$mailer = new SmtpMailer($config['mail']);
+$marzpay = new MarzPayService($config['marzpay'], $pdo);
+
+// Helper to resolve authenticated user from Bearer token
+$requireAuthUser = static function () use ($pdo): array {
+    $token = getBearerToken();
+    if (!$token) {
+        jsonResponse(['success' => false, 'message' => 'Unauthenticated. Please sign in to TradeDesk Mobile Cloud.'], 401);
+    }
+    $stmt = $pdo->prepare("SELECT * FROM mobile_users WHERE api_token = ? LIMIT 1");
+    $stmt->execute([$token]);
+    $user = $stmt->fetch();
+    if (!$user) {
+        jsonResponse(['success' => false, 'message' => 'Session expired or invalid token. Please sign in again.'], 401);
+    }
+    $bStmt = $pdo->prepare("SELECT * FROM mobile_businesses WHERE id = ? LIMIT 1");
+    $bStmt->execute([$user['business_id']]);
+    $biz = $bStmt->fetch() ?: [];
+    return [$user, $biz];
+};
+
+// ============================================================================
+// 0. HEALTH & STATUS ENDPOINT
+// ============================================================================
+if ($route === '' || $route === 'health' || $route === 'status') {
+    $bizCount = (int) $pdo->query("SELECT COUNT(*) FROM mobile_businesses")->fetchColumn();
+    $userCount = (int) $pdo->query("SELECT COUNT(*) FROM mobile_users")->fetchColumn();
+    jsonResponse([
+        'status' => 'online',
+        'service' => 'TradeDesk Mobile Standalone Cloud API',
+        'version' => $config['app']['version'],
+        'database' => $config['db']['database'],
+        'stats' => [
+            'registered_shops' => $bizCount,
+            'registered_owners' => $userCount,
+        ],
+        'timestamp' => date('c'),
+    ]);
+}
+
+// ============================================================================
+// 1. AUTHENTICATION & ONBOARDING ROUTES (/auth/*)
+// ============================================================================
+
+// GET /auth/check-email
+if ($route === 'auth/check-email' && $method === 'GET') {
+    $email = strtolower(trim((string) ($input['email'] ?? '')));
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        jsonResponse(['message' => 'Please enter a valid email address.'], 422);
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT u.id, b.subdomain, b.name AS business_name
+        FROM mobile_users u
+        LEFT JOIN mobile_businesses b ON b.id = u.business_id
+        WHERE u.email = ?
+        LIMIT 1
+    ");
+    $stmt->execute([$email]);
+    $row = $stmt->fetch();
+
+    if ($row) {
+        jsonResponse([
+            'exists' => true,
+            'message' => 'This email already has an active TradeDesk Mobile account.',
+            'subdomain' => $row['subdomain'],
+            'business_name' => $row['business_name'],
+        ]);
+    }
+
+    jsonResponse([
+        'exists' => false,
+        'message' => 'Email is available.',
+    ]);
+}
+
+// POST /auth/send-otp
+if ($route === 'auth/send-otp' && $method === 'POST') {
+    $email = strtolower(trim((string) ($input['email'] ?? '')));
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        jsonResponse(['success' => false, 'message' => 'Please provide a valid email address.'], 422);
+    }
+
+    $chk = $pdo->prepare("SELECT id FROM mobile_users WHERE email = ? LIMIT 1");
+    $chk->execute([$email]);
+    if ($chk->fetch()) {
+        jsonResponse([
+            'success' => false,
+            'message' => 'This email is already registered on TradeDesk Mobile. Please sign in instead.',
+        ], 409);
+    }
+
+    $otp = (string) random_int(100000, 999999);
+    $expiresAt = date('Y-m-d H:i:s', time() + 15 * 60);
+
+    $ins = $pdo->prepare("INSERT INTO mobile_email_otps (email, otp, expires_at, is_used) VALUES (?, ?, ?, 0)");
+    $ins->execute([$email, $otp, $expiresAt]);
+
+    $year = date('Y');
+    $html = "
+    <div style='font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;'>
+        <div style='text-align: center; margin-bottom: 20px;'>
+            <h2 style='color: #0b4fb8; margin: 0;'>Trade<span style='color: #f26a0e;'>Desk</span> Mobile</h2>
+            <p style='color: #64748b; font-size: 14px; margin-top: 4px;'>Solo POS &amp; Shop Management App</p>
+        </div>
+        <p style='color: #1e293b; font-size: 16px; line-height: 1.5;'>Hello,</p>
+        <p style='color: #1e293b; font-size: 15px; line-height: 1.5;'>Your 6-digit email verification code for <strong>TradeDesk Mobile</strong> account setup is:</p>
+        <div style='text-align: center; margin: 28px 0;'>
+            <span style='display: inline-block; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #0a2a66; background: #f1f5f9; padding: 12px 28px; border-radius: 8px; border: 1px dashed #cbd5e1;'>{$otp}</span>
+        </div>
+        <p style='color: #64748b; font-size: 13px; line-height: 1.4;'>This code expires in 15 minutes. If you did not request this code, please ignore this email.</p>
+        <hr style='border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;' />
+        <p style='text-align: center; font-size: 12px; color: #94a3b8; margin: 0;'>&copy; {$year} TradeDesk Mobile &bull; AX Technologies Uganda.</p>
+    </div>";
+
+    $plain = "TradeDesk Mobile - Account Verification\n\nYour email verification code is: {$otp}\n\nThis code expires in 15 minutes.";
+    $sent = $mailer->send($email, "{$otp} is your TradeDesk Mobile Verification Code", $html, $plain);
+
+    if (!$sent) {
+        jsonResponse([
+            'success' => false,
+            'message' => 'Failed to send verification email. Please check your internet connection.',
+        ], 500);
+    }
+
+    jsonResponse([
+        'success' => true,
+        'message' => 'Verification code sent to ' . $email,
+    ]);
+}
+
+// POST /auth/verify-otp
+if ($route === 'auth/verify-otp' && $method === 'POST') {
+    $email = strtolower(trim((string) ($input['email'] ?? '')));
+    $otp = trim((string) ($input['otp'] ?? ''));
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($otp) !== 6) {
+        jsonResponse(['success' => false, 'message' => 'Please enter a valid 6-digit verification code.'], 422);
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT id FROM mobile_email_otps
+        WHERE email = ? AND otp = ? AND is_used = 0 AND expires_at > NOW()
+        ORDER BY id DESC LIMIT 1
+    ");
+    $stmt->execute([$email, $otp]);
+    $record = $stmt->fetch();
+
+    if (!$record) {
+        jsonResponse([
+            'success' => false,
+            'message' => 'Invalid or expired verification code.',
+        ], 422);
+    }
+
+    $upd = $pdo->prepare("UPDATE mobile_email_otps SET is_used = 1 WHERE id = ?");
+    $upd->execute([$record['id']]);
+
+    jsonResponse([
+        'success' => true,
+        'message' => 'Email verified successfully.',
+    ]);
+}
+
+// GET /auth/check-subdomain
+if ($route === 'auth/check-subdomain' && $method === 'GET') {
+    $sub = strtolower(trim((string) ($input['subdomain'] ?? '')));
+    if (!preg_match('/^[a-z0-9-]{3,30}$/', $sub)) {
+        jsonResponse(['available' => false, 'message' => 'Subdomain must be 3-30 lowercase letters, numbers, or hyphens.'], 422);
+    }
+
+    $reserved = ['admin', 'api', 'app', 'pos', 'mail', 'www', 'root', 'support', 'help', 'mobile'];
+    if (in_array($sub, $reserved, true)) {
+        jsonResponse(['available' => false, 'message' => 'This subdomain is reserved.'], 422);
+    }
+
+    $stmt = $pdo->prepare("SELECT id FROM mobile_businesses WHERE subdomain = ? LIMIT 1");
+    $stmt->execute([$sub]);
+    $exists = (bool) $stmt->fetch();
+
+    jsonResponse([
+        'available' => !$exists,
+        'subdomain' => $sub,
+        'message' => $exists ? 'Subdomain already taken' : 'Subdomain is available',
+    ]);
+}
+
+// POST /auth/register-store
+if ($route === 'auth/register-store' && $method === 'POST') {
+    $businessName = trim((string) ($input['business_name'] ?? ''));
+    $subdomain = strtolower(trim((string) ($input['subdomain'] ?? '')));
+    $category = trim((string) ($input['category'] ?? 'Retail Shop'));
+    $location = trim((string) ($input['location'] ?? 'Kampala, Uganda'));
+    $phone = trim((string) ($input['phone'] ?? ''));
+    $currency = strtoupper(trim((string) ($input['currency'] ?? 'UGX')));
+    $tinNumber = trim((string) ($input['tin_number'] ?? ''));
+    $userName = trim((string) ($input['user_name'] ?? ''));
+    $email = strtolower(trim((string) ($input['email'] ?? '')));
+    $password = (string) ($input['password'] ?? '');
+
+    if ($businessName === '' || $userName === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        jsonResponse(['success' => false, 'message' => 'Business name, owner name, and valid email are required.'], 422);
+    }
+
+    if ($subdomain === '') {
+        $subdomain = strtolower(preg_replace('/[^a-z0-9]/i', '', $businessName));
+        if (strlen($subdomain) < 3) {
+            $subdomain .= 'shop';
+        }
+        $subdomain = substr($subdomain, 0, 24);
+    }
+
+    // Ensure unique subdomain
+    $baseSub = $subdomain;
+    $counter = 1;
+    while (true) {
+        $sChk = $pdo->prepare("SELECT id FROM mobile_businesses WHERE subdomain = ? LIMIT 1");
+        $sChk->execute([$subdomain]);
+        if (!$sChk->fetch()) {
+            break;
+        }
+        $subdomain = $baseSub . $counter;
+        $counter++;
+    }
+
+    // Check duplicate email
+    $uChk = $pdo->prepare("SELECT id FROM mobile_users WHERE email = ? LIMIT 1");
+    $uChk->execute([$email]);
+    if ($uChk->fetch()) {
+        jsonResponse(['success' => false, 'message' => 'This email is already registered. Please sign in instead.'], 422);
+    }
+
+    $trialEndsAt = date('Y-m-d H:i:s', time() + 30 * 86400);
+    $insBiz = $pdo->prepare("
+        INSERT INTO mobile_businesses
+        (name, subdomain, category, location, phone, currency, tin_number, plan, trial_ends_at, wallet_balance, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'free_trial', ?, 0.00, 'active')
+    ");
+    $insBiz->execute([
+        $businessName,
+        $subdomain,
+        $category,
+        $location,
+        $phone ?: null,
+        $currency ?: 'UGX',
+        $tinNumber ?: null,
+        $trialEndsAt,
+    ]);
+    $businessId = (int) $pdo->lastInsertId();
+
+    $hashedPassword = password_hash($password !== '' ? $password : bin2hex(random_bytes(8)), PASSWORD_BCRYPT);
+    $apiToken = bin2hex(random_bytes(32));
+
+    $insUser = $pdo->prepare("
+        INSERT INTO mobile_users
+        (business_id, name, email, phone, password, role, two_factor_enabled, is_verified, api_token, status)
+        VALUES (?, ?, ?, ?, ?, 'owner', 0, 1, ?, 'Active')
+    ");
+    $insUser->execute([
+        $businessId,
+        $userName,
+        $email,
+        $phone ?: null,
+        $hashedPassword,
+        $apiToken,
+    ]);
+    $userId = (int) $pdo->lastInsertId();
+
+    $bStmt = $pdo->prepare("SELECT * FROM mobile_businesses WHERE id = ?");
+    $bStmt->execute([$businessId]);
+    $bizRow = $bStmt->fetch();
+
+    $uStmt = $pdo->prepare("SELECT * FROM mobile_users WHERE id = ?");
+    $uStmt->execute([$userId]);
+    $userRow = $uStmt->fetch();
+
+    // Send Welcome Email
+    $year = date('Y');
+    $welcomeHtml = "
+    <div style='font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 26px; border: 1px solid #e2e8f0; border-radius: 14px; background: #ffffff;'>
+        <div style='text-align: center; margin-bottom: 20px;'>
+            <h2 style='color: #0b4fb8; margin: 0;'>Trade<span style='color: #f26a0e;'>Desk</span> Mobile</h2>
+            <p style='color: #64748b; font-size: 13px; margin-top: 4px;'>Standalone Android POS, Inventory &amp; Mobile Money</p>
+        </div>
+        <h3 style='color: #0a2a66; margin-top: 0;'>Welcome aboard, {$userName}! 🎉</h3>
+        <p style='color: #334155; font-size: 14px; line-height: 1.6;'>
+            Your shop <strong>{$businessName}</strong> is now registered on <strong>TradeDesk Mobile Cloud</strong> with a <strong>30-Day Free Trial</strong>.
+            You can now accept live MTN &amp; Airtel Mobile Money payments, purchase Airtime/Data &amp; pay Yaka/NWSC bills, and back up your shop data to the cloud.
+        </p>
+        <div style='background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin: 20px 0; font-size: 13px;'>
+            <div><strong>Shop Name:</strong> {$businessName}</div>
+            <div style='margin-top: 6px;'><strong>Shop ID / Subdomain:</strong> <code>{$subdomain}</code></div>
+            <div style='margin-top: 6px;'><strong>Owner Email:</strong> {$email}</div>
+            <div style='margin-top: 6px;'><strong>Free Trial Valid Until:</strong> " . date('d M Y', strtotime($trialEndsAt)) . "</div>
+        </div>
+        <hr style='border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;' />
+        <p style='text-align: center; font-size: 12px; color: #94a3b8; margin: 0;'>&copy; {$year} TradeDesk Mobile &bull; AX Technologies Uganda.</p>
+    </div>";
+    $mailer->send($email, "Welcome to TradeDesk Mobile — {$businessName} is ready!", $welcomeHtml);
+
+    jsonResponse([
+        'success' => true,
+        'message' => 'TradeDesk Mobile shop created successfully!',
+        'token' => $apiToken,
+        'user' => formatUserPayload($userRow, $bizRow),
+        'business' => formatBusinessPayload($bizRow),
+    ]);
+}
+
+// GET /auth/find-store
+if ($route === 'auth/find-store' && $method === 'GET') {
+    $q = trim((string) ($input['query'] ?? ''));
+    if (strlen($q) < 2) {
+        jsonResponse(['success' => true, 'stores' => []]);
+    }
+
+    $like = "%{$q}%";
+    $stmt = $pdo->prepare("
+        SELECT DISTINCT b.*
+        FROM mobile_businesses b
+        LEFT JOIN mobile_users u ON u.business_id = b.id
+        WHERE b.name LIKE ? OR b.subdomain LIKE ? OR b.phone LIKE ?
+           OR u.email LIKE ? OR u.phone LIKE ? OR u.name LIKE ?
+        LIMIT 6
+    ");
+    $stmt->execute([$like, $like, $like, $like, $like, $like]);
+    $rows = $stmt->fetchAll();
+
+    $stores = array_map(static function (array $b): array {
+        return [
+            'id' => (int) $b['id'],
+            'name' => $b['name'],
+            'subdomain' => $b['subdomain'],
+            'category' => $b['category'],
+            'location' => $b['location'],
+            'phone' => $b['phone'],
+            'branches_count' => 1,
+            'logo_url' => $b['logo_url'],
+        ];
+    }, $rows);
+
+    jsonResponse([
+        'success' => true,
+        'stores' => $stores,
+    ]);
+}
+
+// POST /auth/portal-login & POST /auth/store-login
+if (($route === 'auth/portal-login' || $route === 'auth/store-login') && $method === 'POST') {
+    $loginInput = trim((string) ($input['email'] ?? ''));
+    $password = (string) ($input['password'] ?? '');
+    $subdomain = strtolower(trim((string) ($input['subdomain'] ?? '')));
+
+    if ($loginInput === '' || $password === '') {
+        jsonResponse(['message' => 'Email/Phone and password are required.'], 422);
+    }
+
+    $cleanDigits = preg_replace('/\D/', '', $loginInput);
+
+    if ($route === 'auth/store-login' && $subdomain !== '') {
+        $bStmt = $pdo->prepare("SELECT * FROM mobile_businesses WHERE subdomain = ? LIMIT 1");
+        $bStmt->execute([$subdomain]);
+        $biz = $bStmt->fetch();
+        if (!$biz) {
+            jsonResponse(['message' => 'Shop not found on TradeDesk Mobile.'], 404);
+        }
+
+        $uStmt = $pdo->prepare("
+            SELECT * FROM mobile_users
+            WHERE business_id = ? AND (email = ? OR phone = ? OR (? <> '' AND REPLACE(REPLACE(phone, '+', ''), ' ', '') LIKE ?))
+            LIMIT 1
+        ");
+        $uStmt->execute([
+            $biz['id'],
+            strtolower($loginInput),
+            $loginInput,
+            $cleanDigits,
+            "%{$cleanDigits}%",
+        ]);
+        $user = $uStmt->fetch();
+    } else {
+        $uStmt = $pdo->prepare("
+            SELECT * FROM mobile_users
+            WHERE email = ? OR phone = ? OR (? <> '' AND REPLACE(REPLACE(phone, '+', ''), ' ', '') LIKE ?)
+            LIMIT 1
+        ");
+        $uStmt->execute([
+            strtolower($loginInput),
+            $loginInput,
+            $cleanDigits,
+            "%{$cleanDigits}%",
+        ]);
+        $user = $uStmt->fetch();
+        $biz = null;
+        if ($user) {
+            $bStmt = $pdo->prepare("SELECT * FROM mobile_businesses WHERE id = ? LIMIT 1");
+            $bStmt->execute([$user['business_id']]);
+            $biz = $bStmt->fetch();
+        }
+    }
+
+    if (!$user || !password_verify($password, $user['password'])) {
+        jsonResponse(['message' => 'Invalid email/phone or password.'], 401);
+    }
+
+    if (!$biz) {
+        jsonResponse(['message' => 'Business profile not found for this account.'], 404);
+    }
+
+    // Check Two-Factor Authentication
+    if ((int) ($user['two_factor_enabled'] ?? 0) === 1) {
+        $otp = (string) random_int(100000, 999999);
+        $expiresAt = date('Y-m-d H:i:s', time() + 10 * 60);
+        $ins = $pdo->prepare("INSERT INTO mobile_email_otps (email, otp, expires_at, is_used) VALUES (?, ?, ?, 0)");
+        $ins->execute([$user['email'], $otp, $expiresAt]);
+
+        $html = "
+        <div style='font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;'>
+            <h2 style='color: #0b4fb8; margin: 0; text-align: center;'>Trade<span style='color: #f26a0e;'>Desk</span> Mobile</h2>
+            <p style='color: #1e293b; font-size: 15px; margin-top: 16px;'>Hello <strong>{$user['name']}</strong>,</p>
+            <p style='color: #475569; font-size: 14px;'>Your 6-digit Two-Factor Authentication login code for <strong>{$biz['name']}</strong> is:</p>
+            <div style='text-align: center; margin: 24px 0;'>
+                <span style='display: inline-block; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #0b4fb8; background: #eff6ff; padding: 12px 28px; border-radius: 8px;'>{$otp}</span>
+            </div>
+            <p style='color: #64748b; font-size: 12px;'>This code expires in 10 minutes.</p>
+        </div>";
+        $mailer->send($user['email'], "{$otp} is your TradeDesk Mobile login code", $html);
+
+        $masked = maskEmailAddress($user['email']);
+        jsonResponse([
+            'success' => true,
+            'requires_otp' => true,
+            'email' => $user['email'],
+            'masked_email' => $masked,
+            'subdomain' => $biz['subdomain'],
+            'message' => "Two-Factor Authentication is enabled. A 6-digit code was sent to {$masked}.",
+        ]);
+    }
+
+    $apiToken = bin2hex(random_bytes(32));
+    $upd = $pdo->prepare("UPDATE mobile_users SET api_token = ? WHERE id = ?");
+    $upd->execute([$apiToken, $user['id']]);
+
+    jsonResponse([
+        'success' => true,
+        'message' => 'Login successful!',
+        'token' => $apiToken,
+        'user' => formatUserPayload($user, $biz),
+        'business' => formatBusinessPayload($biz),
+        'subdomain' => $biz['subdomain'],
+    ]);
+}
+
+// POST /auth/verify-login-otp
+if ($route === 'auth/verify-login-otp' && $method === 'POST') {
+    $email = strtolower(trim((string) ($input['email'] ?? '')));
+    $otp = trim((string) ($input['otp'] ?? ''));
+
+    $stmt = $pdo->prepare("
+        SELECT id FROM mobile_email_otps
+        WHERE email = ? AND otp = ? AND is_used = 0 AND expires_at >= NOW()
+        ORDER BY id DESC LIMIT 1
+    ");
+    $stmt->execute([$email, $otp]);
+    $rec = $stmt->fetch();
+
+    if (!$rec) {
+        jsonResponse(['success' => false, 'message' => 'Invalid or expired verification code.'], 422);
+    }
+
+    $pdo->prepare("UPDATE mobile_email_otps SET is_used = 1 WHERE id = ?")->execute([$rec['id']]);
+
+    $uStmt = $pdo->prepare("SELECT * FROM mobile_users WHERE email = ? LIMIT 1");
+    $uStmt->execute([$email]);
+    $user = $uStmt->fetch();
+    if (!$user) {
+        jsonResponse(['message' => 'User not found.'], 404);
+    }
+
+    $bStmt = $pdo->prepare("SELECT * FROM mobile_businesses WHERE id = ? LIMIT 1");
+    $bStmt->execute([$user['business_id']]);
+    $biz = $bStmt->fetch();
+
+    $apiToken = bin2hex(random_bytes(32));
+    $pdo->prepare("UPDATE mobile_users SET api_token = ? WHERE id = ?")->execute([$apiToken, $user['id']]);
+
+    jsonResponse([
+        'success' => true,
+        'message' => 'Login verified successfully!',
+        'token' => $apiToken,
+        'user' => formatUserPayload($user, $biz),
+        'business' => $biz ? formatBusinessPayload($biz) : null,
+        'subdomain' => $biz['subdomain'] ?? null,
+    ]);
+}
+
+// POST /auth/resend-login-otp
+if ($route === 'auth/resend-login-otp' && $method === 'POST') {
+    $email = strtolower(trim((string) ($input['email'] ?? '')));
+    $uStmt = $pdo->prepare("SELECT * FROM mobile_users WHERE email = ? LIMIT 1");
+    $uStmt->execute([$email]);
+    $user = $uStmt->fetch();
+    if (!$user) {
+        jsonResponse(['message' => 'Account not found with this email.'], 404);
+    }
+
+    $otp = (string) random_int(100000, 999999);
+    $expiresAt = date('Y-m-d H:i:s', time() + 10 * 60);
+    $pdo->prepare("INSERT INTO mobile_email_otps (email, otp, expires_at, is_used) VALUES (?, ?, ?, 0)")
+        ->execute([$email, $otp, $expiresAt]);
+
+    $mailer->send($email, "{$otp} is your TradeDesk Mobile login verification code", "<p>Your login verification code is: <strong>{$otp}</strong></p>");
+
+    jsonResponse([
+        'success' => true,
+        'message' => 'A new 6-digit verification code has been sent to your email.',
+    ]);
+}
+
+// GET /auth/me
+if ($route === 'auth/me' && $method === 'GET') {
+    [$user, $biz] = $requireAuthUser();
+    jsonResponse([
+        'success' => true,
+        'user' => formatUserPayload($user, $biz),
+        'business' => formatBusinessPayload($biz),
+    ]);
+}
+
+// POST /auth/logout
+if ($route === 'auth/logout' && $method === 'POST') {
+    $token = getBearerToken();
+    if ($token) {
+        $pdo->prepare("UPDATE mobile_users SET api_token = NULL WHERE api_token = ?")->execute([$token]);
+    }
+    jsonResponse(['success' => true, 'message' => 'Logged out successfully.']);
+}
+
+// ============================================================================
+// 2. MOBILE MONEY & VALUE-ADDED SERVICES (/pos/*)
+// ============================================================================
+
+// Helper to verify Owner Payment OTP
+$verifyOwnerPaymentOtp = static function (int $businessId, string $otp) use ($pdo): void {
+    $stmt = $pdo->prepare("SELECT email FROM mobile_users WHERE business_id = ? ORDER BY id ASC LIMIT 1");
+    $stmt->execute([$businessId]);
+    $email = $stmt->fetchColumn();
+    if (!$email) {
+        jsonResponse(['status' => 'error', 'message' => 'Shop owner email not found for OTP verification.'], 403);
+    }
+
+    $oStmt = $pdo->prepare("
+        SELECT id FROM mobile_email_otps
+        WHERE email = ? AND otp = ? AND is_used = 0 AND expires_at >= NOW()
+        ORDER BY id DESC LIMIT 1
+    ");
+    $oStmt->execute([$email, trim($otp)]);
+    $valid = $oStmt->fetch();
+    if (!$valid) {
+        jsonResponse(['status' => 'error', 'message' => 'Invalid or expired 6-digit authorization OTP code.'], 403);
+    }
+
+    $pdo->prepare("UPDATE mobile_email_otps SET is_used = 1 WHERE id = ?")->execute([$valid['id']]);
+};
+
+// POST /pos/momo/verify-phone
+if ($route === 'pos/momo/verify-phone' && $method === 'POST') {
+    $phone = trim((string) ($input['phone_number'] ?? ''));
+    if (strlen($phone) < 9) {
+        jsonResponse(['status' => 'error', 'message' => 'Please enter a valid phone number.'], 422);
+    }
+    $result = $marzpay->verifyPhone($phone);
+    if (!$result['success']) {
+        jsonResponse([
+            'status' => 'error',
+            'message' => $result['message'] ?? 'Could not verify account name.',
+            'data' => $result,
+        ], 422);
+    }
+    jsonResponse([
+        'status' => 'success',
+        'data' => $result,
+    ]);
+}
+
+// POST /pos/momo/request-prompt
+if ($route === 'pos/momo/request-prompt' && $method === 'POST') {
+    $phone = trim((string) ($input['phone_number'] ?? ''));
+    $amount = (float) ($input['amount'] ?? 0);
+    $businessId = (int) ($input['business_id'] ?? 1);
+    $reference = trim((string) ($input['reference'] ?? '')) ?: ('TDM-' . strtoupper(bin2hex(random_bytes(4))));
+    $description = trim((string) ($input['description'] ?? 'TradeDesk Mobile POS Sale'));
+
+    if (strlen($phone) < 9 || $amount < 500) {
+        jsonResponse(['status' => 'error', 'message' => 'Valid phone number and minimum UGX 500 are required.'], 422);
+    }
+
+    $result = $marzpay->requestPayment($phone, $amount, $reference, $description, $businessId);
+    if (!$result['success']) {
+        jsonResponse([
+            'status' => 'error',
+            'error_code' => $result['error_code'] ?? 'GATEWAY_ERROR',
+            'message' => $result['message'],
+            'data' => $result,
+        ], 422);
+    }
+
+    jsonResponse([
+        'status' => 'success',
+        'message' => $result['message'],
+        'data' => $result,
+    ]);
+}
+
+// GET /pos/momo/check-status/{internalReference}
+if (preg_match('#^pos/momo/check-status/([^/]+)$#', $route, $m) && $method === 'GET') {
+    $internalReference = rawurldecode($m[1]);
+    $merchantRef = $input['reference'] ?? $input['customer_reference'] ?? null;
+    $result = $marzpay->checkStatus($internalReference, $merchantRef ? (string) $merchantRef : null);
+
+    $isSuccessful = !empty($result['is_completed']);
+    $status = strtolower($result['status'] ?? 'pending');
+
+    if ($isSuccessful && !empty($input['business_id']) && !empty($input['amount']) && !empty($input['credit_treasury'])) {
+        $businessId = (int) $input['business_id'];
+        $amount = (float) $input['amount'];
+        $ref = (string) ($merchantRef ?: $internalReference);
+        $provider = (string) ($input['provider'] ?? 'MOMO');
+        $result['treasury_account_balance'] = $marzpay->creditBusinessWallet($businessId, $amount, $ref, $provider);
+    }
+
+    jsonResponse([
+        'status' => 'success',
+        'payment_status' => $status,
+        'is_completed' => $isSuccessful,
+        'is_failed' => !empty($result['is_failed']),
+        'data' => $result,
+    ]);
+}
+
+// POST /pos/momo/credit-balance
+if ($route === 'pos/momo/credit-balance' && $method === 'POST') {
+    $businessId = (int) ($input['business_id'] ?? 1);
+    $amount = (float) ($input['amount'] ?? 0);
+    $reference = trim((string) ($input['reference'] ?? ''));
+    $provider = trim((string) ($input['provider'] ?? 'MOMO'));
+
+    $newBalance = $marzpay->creditBusinessWallet($businessId, $amount, $reference, $provider);
+    jsonResponse([
+        'status' => 'success',
+        'message' => 'UGX ' . number_format($amount) . " credited to shop's Mobile Money wallet.",
+        'current_balance' => $newBalance,
+    ]);
+}
+
+// GET /pos/momo/balance
+if ($route === 'pos/momo/balance' && $method === 'GET') {
+    $businessId = (int) ($input['business_id'] ?? 1);
+    $bStmt = $pdo->prepare("SELECT wallet_balance FROM mobile_businesses WHERE id = ? LIMIT 1");
+    $bStmt->execute([$businessId]);
+    $localWallet = (float) ($bStmt->fetchColumn() ?: 0.0);
+
+    $walletData = $marzpay->getWalletBalance();
+    $gatewayBalance = (float) ($walletData['available_balance'] ?? $walletData['balance'] ?? 0);
+
+    jsonResponse([
+        'status' => 'success',
+        'data' => [
+            'gateway' => 'mobile_money',
+            'gateway_balance' => $gatewayBalance,
+            'current_balance' => $localWallet > 0 ? $localWallet : $gatewayBalance,
+            'is_configured' => $walletData['is_configured'] ?? true,
+        ],
+    ]);
+}
+
+// POST /pos/momo/send-payment-otp
+if ($route === 'pos/momo/send-payment-otp' && $method === 'POST') {
+    $businessId = (int) ($input['business_id'] ?? 1);
+    $actionType = (string) ($input['action_type'] ?? 'payment');
+    $amount = (float) ($input['amount'] ?? 0);
+    $details = (string) ($input['details'] ?? '');
+
+    $bStmt = $pdo->prepare("SELECT * FROM mobile_businesses WHERE id = ? LIMIT 1");
+    $bStmt->execute([$businessId]);
+    $biz = $bStmt->fetch();
+
+    $uStmt = $pdo->prepare("SELECT * FROM mobile_users WHERE business_id = ? ORDER BY id ASC LIMIT 1");
+    $uStmt->execute([$businessId]);
+    $owner = $uStmt->fetch();
+
+    if (!$owner || empty($owner['email'])) {
+        jsonResponse(['status' => 'error', 'message' => 'Shop owner email not found.'], 422);
+    }
+
+    $email = $owner['email'];
+    $otp = (string) random_int(100000, 999999);
+    $expiresAt = date('Y-m-d H:i:s', time() + 10 * 60);
+
+    $pdo->prepare("INSERT INTO mobile_email_otps (email, otp, expires_at, is_used) VALUES (?, ?, ?, 0)")
+        ->execute([$email, $otp, $expiresAt]);
+
+    $actionLabel = match ($actionType) {
+        'bill_payment' => 'Utility Bill Payment',
+        'airtime' => 'Airtime / Data Bundle Top-Up',
+        'withdrawal' => 'Mobile Money Withdrawal',
+        default => 'Payment Authorization',
+    };
+
+    $formattedAmt = 'UGX ' . number_format($amount);
+    $shopName = $biz['name'] ?? 'TradeDesk Mobile Shop';
+    $html = "
+    <div style='font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;'>
+        <h2 style='color: #0b4fb8; margin: 0; text-align: center;'>Trade<span style='color: #f26a0e;'>Desk</span> Mobile</h2>
+        <div style='background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin: 18px 0;'>
+            <div style='font-size: 13px; color: #475569;'>Payment authorization requested for <strong>{$shopName}</strong>:</div>
+            <div style='font-size: 17px; font-weight: 800; color: #0f172a; margin-top: 6px;'>{$actionLabel}: <span style='color: #b91c1c;'>{$formattedAmt}</span></div>
+            " . ($details ? "<div style='font-size: 12px; color: #64748b; margin-top: 4px;'>Details: <strong>{$details}</strong></div>" : "") . "
+        </div>
+        <p style='font-size: 14px; color: #1e293b;'>Enter this 6-digit authorization code in TradeDesk Mobile:</p>
+        <div style='text-align: center; margin: 22px 0;'>
+            <span style='display: inline-block; font-size: 32px; font-weight: 900; letter-spacing: 8px; color: #0b4fb8; background: #eff6ff; padding: 12px 26px; border-radius: 10px;'>{$otp}</span>
+        </div>
+        <p style='font-size: 12px; color: #64748b; text-align: center;'>Expires in 10 minutes.</p>
+    </div>";
+
+    $mailer->send($email, "{$otp} is your TradeDesk Mobile Payment Code ({$formattedAmt})", $html);
+    $masked = maskEmailAddress($email);
+
+    jsonResponse([
+        'status' => 'success',
+        'message' => "Authorization code sent to {$masked}",
+        'masked_email' => $masked,
+    ]);
+}
+
+// POST /pos/momo/withdraw
+if ($route === 'pos/momo/withdraw' && $method === 'POST') {
+    $businessId = (int) ($input['business_id'] ?? 1);
+    $amount = (float) ($input['amount'] ?? 0);
+    $phone = trim((string) ($input['phone_number'] ?? ''));
+    $otp = trim((string) ($input['otp'] ?? ''));
+    $notes = trim((string) ($input['notes'] ?? 'TradeDesk Mobile Owner Withdrawal'));
+
+    if ($amount < 5000) {
+        jsonResponse(['status' => 'error', 'message' => 'Minimum withdrawal is UGX 5,000.'], 422);
+    }
+
+    $verifyOwnerPaymentOtp($businessId, $otp);
+
+    $res = $marzpay->sendMoney($phone, $amount, $notes);
+    if (!$res['success']) {
+        jsonResponse([
+            'status' => 'error',
+            'message' => $res['message'],
+            'error_code' => $res['error_code'] ?? 'DISBURSEMENT_FAILED',
+        ], 422);
+    }
+
+    $pdo->prepare("UPDATE mobile_businesses SET wallet_balance = GREATEST(0, wallet_balance - ?) WHERE id = ?")
+        ->execute([$amount, $businessId]);
+
+    $bStmt = $pdo->prepare("SELECT wallet_balance FROM mobile_businesses WHERE id = ?");
+    $bStmt->execute([$businessId]);
+    $newBal = (float) ($bStmt->fetchColumn() ?: 0);
+
+    jsonResponse([
+        'status' => 'success',
+        'message' => 'UGX ' . number_format($amount) . " withdrawn to {$res['phone_number']} ({$res['provider']})!",
+        'data' => [
+            'withdrawn_amount' => $amount,
+            'phone_number' => $res['phone_number'],
+            'provider' => $res['provider'],
+            'reference' => $res['reference'],
+            'new_balance' => $newBal,
+        ],
+    ]);
+}
+
+// POST /pos/momo/webhook
+if (($route === 'pos/momo/webhook' || $route === 'webhooks/marzpay') && $method === 'POST') {
+    $data = isset($input['data']) && is_array($input['data']) ? $input['data'] : $input;
+    $eventType = $input['event_type'] ?? ($data['event_type'] ?? '');
+    $transaction = $data['transaction'] ?? [];
+    $collection = $data['collection'] ?? [];
+    $status = strtolower($transaction['status'] ?? '');
+    $isCompleted = ($eventType === 'collection.completed') || in_array($status, ['completed', 'successful', 'success'], true);
+
+    if ($isCompleted) {
+        $uuid = $transaction['uuid'] ?? ($transaction['reference'] ?? '');
+        if ($uuid !== '') {
+            $stmt = $pdo->prepare("SELECT * FROM mobile_momo_transactions WHERE internal_reference = ? OR gateway_reference = ? LIMIT 1");
+            $stmt->execute([$uuid, $uuid]);
+            $tx = $stmt->fetch();
+            if ($tx) {
+                $marzpay->creditBusinessWallet((int) $tx['business_id'], (float) $tx['amount'], (string) $tx['internal_reference'], (string) $tx['provider']);
+            }
+        }
+    }
+
+    jsonResponse(['received' => true, 'status' => 'processed']);
+}
+
+// GET /pos/bills/services
+if ($route === 'pos/bills/services' && $method === 'GET') {
+    $nwscAreas = $marzpay->getNwscAreas();
+    $dstvBouquets = $marzpay->getBouquetCodes('dstv');
+    $gotvBouquets = $marzpay->getBouquetCodes('gotv');
+
+    jsonResponse([
+        'status' => 'success',
+        'data' => [
+            'nwsc_areas' => $nwscAreas,
+            'dstv_bouquets' => $dstvBouquets,
+            'gotv_bouquets' => $gotvBouquets,
+        ],
+    ]);
+}
+
+// POST /pos/bills/verify
+if ($route === 'pos/bills/verify' && $method === 'POST') {
+    $utilityCode = (string) ($input['utility_code'] ?? '');
+    $meterNumber = (string) ($input['meter_number'] ?? '');
+    $area = isset($input['area']) ? (string) $input['area'] : null;
+
+    $res = $marzpay->verifyBillAccount($utilityCode, $meterNumber, $area);
+    jsonResponse($res, $res['success'] ? 200 : 422);
+}
+
+// POST /pos/bills/pay
+if ($route === 'pos/bills/pay' && $method === 'POST') {
+    $businessId = (int) ($input['business_id'] ?? 1);
+    $utilityCode = (string) ($input['utility_code'] ?? '');
+    $meterNumber = (string) ($input['meter_number'] ?? '');
+    $amount = (float) ($input['amount'] ?? 0);
+    $phone = (string) ($input['phone_number'] ?? '');
+    $customerName = (string) ($input['customer_name'] ?? 'Customer');
+    $area = isset($input['area']) ? (string) $input['area'] : null;
+    $bouquetCode = isset($input['bouquet_code']) ? (string) $input['bouquet_code'] : null;
+    $email = isset($input['email']) ? (string) $input['email'] : null;
+    $otp = (string) ($input['otp'] ?? '');
+
+    $verifyOwnerPaymentOtp($businessId, $otp);
+
+    $payRes = $marzpay->payBill($utilityCode, $meterNumber, $amount, $phone, $customerName, $area, $bouquetCode, $email);
+    if (!$payRes['success']) {
+        jsonResponse([
+            'status' => 'error',
+            'message' => $payRes['message'] ?? 'Bill payment failed.',
+        ], 422);
+    }
+
+    $pdo->prepare("UPDATE mobile_businesses SET wallet_balance = GREATEST(0, wallet_balance - ?) WHERE id = ?")
+        ->execute([$amount, $businessId]);
+
+    jsonResponse([
+        'status' => 'success',
+        'message' => 'UGX ' . number_format($amount) . " paid for {$utilityCode} ({$meterNumber})!",
+        'data' => [
+            'utility_code' => $utilityCode,
+            'meter_number' => $meterNumber,
+            'customer_name' => $customerName,
+            'amount' => $amount,
+            'token' => $payRes['token'] ?? null,
+            'units' => $payRes['units'] ?? null,
+            'reference' => $payRes['reference'],
+        ],
+    ]);
+}
+
+// GET /pos/airtime/catalog
+if ($route === 'pos/airtime/catalog' && $method === 'GET') {
+    jsonResponse([
+        'status' => 'success',
+        'data' => $marzpay->getAirtimeDataCatalog(),
+    ]);
+}
+
+// POST /pos/airtime/purchase
+if ($route === 'pos/airtime/purchase' && $method === 'POST') {
+    $businessId = (int) ($input['business_id'] ?? 1);
+    $purchaseType = (string) ($input['purchase_type'] ?? 'airtime');
+    $phone = (string) ($input['phone_number'] ?? '');
+    $amount = (float) ($input['amount'] ?? 0);
+    $bundleCode = isset($input['bundle_code']) ? (string) $input['bundle_code'] : null;
+    $otp = (string) ($input['otp'] ?? '');
+
+    $verifyOwnerPaymentOtp($businessId, $otp);
+
+    $buyRes = $marzpay->purchaseAirtimeOrData($purchaseType, $phone, $amount, $bundleCode);
+    if (!$buyRes['success']) {
+        jsonResponse([
+            'status' => 'error',
+            'message' => $buyRes['message'] ?? 'Airtime/Data top-up failed.',
+        ], 422);
+    }
+
+    $pdo->prepare("UPDATE mobile_businesses SET wallet_balance = GREATEST(0, wallet_balance - ?) WHERE id = ?")
+        ->execute([$amount, $businessId]);
+
+    jsonResponse([
+        'status' => 'success',
+        'message' => 'UGX ' . number_format($amount) . " {$purchaseType} sent to {$phone}!",
+        'data' => $buyRes,
+    ]);
+}
+
+// ============================================================================
+// 3. CLOUD BACKUP, PHONE RECOVERY & SUBSCRIPTION ROUTES (/cloud/*)
+// ============================================================================
+
+// POST /cloud/backup
+if ($route === 'cloud/backup' && $method === 'POST') {
+    [$user, $biz] = $requireAuthUser();
+    $snapshot = $input['snapshot'] ?? null;
+    $deviceName = trim((string) ($input['device_name'] ?? 'Android Phone'));
+    $appVersion = trim((string) ($input['app_version'] ?? '1.0.0'));
+    $statsSummary = $input['stats_summary'] ?? [];
+
+    if (!$snapshot || !is_array($snapshot)) {
+        jsonResponse(['success' => false, 'message' => 'Valid database snapshot payload is required.'], 422);
+    }
+
+    $snapshotJson = json_encode($snapshot, JSON_UNESCAPED_UNICODE);
+    $statsJson = json_encode($statsSummary, JSON_UNESCAPED_UNICODE);
+
+    $ins = $pdo->prepare("
+        INSERT INTO mobile_cloud_backups (business_id, user_id, device_name, app_version, snapshot_json, stats_summary)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ");
+    $ins->execute([
+        $biz['id'],
+        $user['id'],
+        $deviceName,
+        $appVersion,
+        $snapshotJson,
+        $statsJson,
+    ]);
+
+    jsonResponse([
+        'success' => true,
+        'backup_id' => (int) $pdo->lastInsertId(),
+        'backed_up_at' => date('c'),
+        'message' => 'Your shop data has been securely backed up to TradeDesk Mobile Cloud!',
+    ]);
+}
+
+// GET /cloud/restore
+if ($route === 'cloud/restore' && $method === 'GET') {
+    [$user, $biz] = $requireAuthUser();
+
+    $stmt = $pdo->prepare("
+        SELECT id, device_name, app_version, snapshot_json, stats_summary, created_at
+        FROM mobile_cloud_backups
+        WHERE business_id = ?
+        ORDER BY id DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$biz['id']]);
+    $backup = $stmt->fetch();
+
+    if (!$backup) {
+        jsonResponse([
+            'success' => false,
+            'message' => 'No cloud backup found for this TradeDesk Mobile account yet.',
+        ], 404);
+    }
+
+    jsonResponse([
+        'success' => true,
+        'backup' => [
+            'id' => (int) $backup['id'],
+            'device_name' => $backup['device_name'],
+            'app_version' => $backup['app_version'],
+            'created_at' => $backup['created_at'],
+            'stats_summary' => json_decode((string) $backup['stats_summary'], true) ?: [],
+            'snapshot' => json_decode((string) $backup['snapshot_json'], true) ?: [],
+        ],
+    ]);
+}
+
+// GET /cloud/subscription
+if ($route === 'cloud/subscription' && $method === 'GET') {
+    [$user, $biz] = $requireAuthUser();
+    jsonResponse([
+        'success' => true,
+        'plan' => $biz['plan'] ?? 'free_trial',
+        'trial_ends_at' => $biz['trial_ends_at'],
+        'subscription_expires_at' => $biz['subscription_expires_at'],
+        'plans_catalog' => [
+            ['code' => 'basic_monthly', 'name' => 'Basic Monthly', 'price_ugx' => 5000, 'period' => 'month'],
+            ['code' => 'standard_monthly', 'name' => 'Standard Monthly', 'price_ugx' => 10000, 'period' => 'month'],
+            ['code' => 'basic_annual', 'name' => 'Annual Basic', 'price_ugx' => 50000, 'period' => 'year'],
+            ['code' => 'standard_annual', 'name' => 'Annual Standard', 'price_ugx' => 100000, 'period' => 'year'],
+        ],
+    ]);
+}
+
+jsonResponse([
+    'status' => 'error',
+    'message' => "Endpoint not found on TradeDesk Mobile API: {$method} /{$route}",
+], 404);
