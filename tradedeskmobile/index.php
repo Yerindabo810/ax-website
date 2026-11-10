@@ -366,6 +366,10 @@ try {
         $userName = trim((string) ($input['user_name'] ?? ''));
         $email = strtolower(trim((string) ($input['email'] ?? '')));
         $password = (string) ($input['password'] ?? '');
+        $firebaseUid = trim((string) ($input['firebase_uid'] ?? ''));
+        $authProvider = in_array(($input['auth_provider'] ?? 'email'), ['email', 'google'], true)
+            ? $input['auth_provider']
+            : 'email';
 
         if ($businessName === '' || $userName === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             jsonResponse(['success' => false, 'message' => 'Business name, owner name, and valid email are required.'], 422);
@@ -422,8 +426,8 @@ try {
 
         $insUser = $pdo->prepare("
             INSERT INTO mobile_users
-            (business_id, name, email, phone, password, role, two_factor_enabled, is_verified, api_token, status)
-            VALUES (?, ?, ?, ?, ?, 'owner', 0, 1, ?, 'Active')
+            (business_id, name, email, phone, password, firebase_uid, auth_provider, role, two_factor_enabled, is_verified, api_token, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'owner', 0, 1, ?, 'Active')
         ");
         $insUser->execute([
             $businessId,
@@ -431,6 +435,8 @@ try {
             $email,
             $phone ?: null,
             $hashedPassword,
+            $firebaseUid ?: null,
+            $authProvider,
             $apiToken,
         ]);
         $userId = (int) $pdo->lastInsertId();
@@ -683,6 +689,212 @@ try {
         jsonResponse([
             'success' => true,
             'message' => 'A new 6-digit verification code has been sent to your email.',
+        ]);
+    }
+
+    // GET /auth/google-oauth (Firebase Google Sign-In Popup / Redirect Bridge using google-services.json credentials)
+    if ($route === 'auth/google-oauth' && $method === 'GET') {
+        $sessionId = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($input['session_id'] ?? ''));
+        $returnUrl = trim((string) ($input['return_url'] ?? 'tradedesk://google-auth'));
+        header('Content-Type: text/html; charset=utf-8');
+        echo '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sign in with Google — TradeDesk MOBILE</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #061a42; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; box-sizing: border-box; }
+  .card { background: #ffffff; color: #0d1526; max-width: 400px; width: 100%; border-radius: 22px; padding: 28px 24px; text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+  .brand { font-size: 24px; font-weight: 900; color: #0a2a66; letter-spacing: -0.4px; }
+  .brand span { color: #f26a0e; }
+  .mobile-tag { font-size: 9px; font-weight: 900; color: #f26a0e; letter-spacing: 3.5px; margin-top: 2px; margin-bottom: 16px; }
+  h2 { font-size: 18px; margin: 0 0 8px; color: #0d1526; }
+  p { font-size: 13.5px; color: #5b6782; margin: 0 0 22px; line-height: 1.45; }
+  .btn-google { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px; border-radius: 12px; border: 1.5px solid #cbd5e1; background: #fff; color: #0d1526; font-size: 15px; font-weight: 800; cursor: pointer; margin-bottom: 14px; }
+  .btn-google:hover { background: #f8fafc; border-color: #0b4fb8; }
+  #g_id_signin { display: flex; justify-content: center; margin: 12px 0; }
+  .status { font-size: 13px; font-weight: 700; color: #0b4fb8; margin-top: 14px; }
+  .err { color: #e0393e; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">Trade<span>Desk</span></div>
+    <div class="mobile-tag">MOBILE</div>
+    <h2>Continue with Google</h2>
+    <p>Select your Google account below to sign in or set up your shop on TradeDesk Mobile.</p>
+    <div id="g_id_onload"
+         data-client_id="613926385238-phjjj57f4f17kq4m24aclnev5bk26gec.apps.googleusercontent.com"
+         data-context="signin"
+         data-ux_mode="popup"
+         data-callback="handleGoogleCredential"
+         data-auto_prompt="true">
+    </div>
+    <div id="g_id_signin" class="g_id_signin"
+         data-type="standard"
+         data-shape="rectangular"
+         data-theme="outline"
+         data-text="continue_with"
+         data-size="large"
+         data-logo_alignment="left"
+         data-width="320">
+    </div>
+    <button type="button" class="btn-google" id="firebasePopupBtn" style="margin-top:10px;">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt="Google" />
+      <span>Open Google Account Chooser</span>
+    </button>
+    <div id="statusMsg" class="status"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithCredential } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBrbWi2sYBxbhDzeiZd5SemcUE3Pp1jvJE",
+      authDomain: "tradedesk-46cfc.firebaseapp.com",
+      projectId: "tradedesk-46cfc",
+      storageBucket: "tradedesk-46cfc.firebasestorage.app",
+      messagingSenderId: "613926385238",
+      appId: "1:613926385238:android:4486c2d846bc5bb4d22df7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+
+    const sessionId = ' . json_encode($sessionId) . ';
+    const returnUrl = ' . json_encode($returnUrl) . ';
+    const statusEl = document.getElementById("statusMsg");
+
+    async function completeSession(payload) {
+      statusEl.className = "status";
+      statusEl.textContent = "Verified as " + payload.email + "! Returning to TradeDesk Mobile...";
+      await fetch("./google-session-save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId, ...payload })
+      });
+      setTimeout(() => {
+        if (returnUrl) window.location.href = returnUrl;
+      }, 500);
+    }
+
+    window.handleGoogleCredential = async function(response) {
+      try {
+        statusEl.textContent = "Verifying Google account...";
+        const credential = GoogleAuthProvider.credential(response.credential);
+        const res = await signInWithCredential(auth, credential);
+        const u = res.user;
+        await completeSession({
+          firebase_uid: u.uid,
+          email: u.email || "",
+          name: u.displayName || "Business Owner",
+          photo_url: u.photoURL || ""
+        });
+      } catch (e) {
+        // Fallback decode JWT directly if Firebase domain is restricted
+        try {
+          const parts = response.credential.split(".");
+          const decoded = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+          await completeSession({
+            firebase_uid: decoded.sub || "",
+            email: decoded.email || "",
+            name: decoded.name || "Business Owner",
+            photo_url: decoded.picture || ""
+          });
+        } catch (err) {
+          statusEl.className = "status err";
+          statusEl.textContent = err.message || "Google sign-in failed.";
+        }
+      }
+    };
+
+    document.getElementById("firebasePopupBtn").addEventListener("click", async () => {
+      try {
+        statusEl.className = "status";
+        statusEl.textContent = "Opening Google Account Picker...";
+        const result = await signInWithPopup(auth, provider);
+        const u = result.user;
+        await completeSession({
+          firebase_uid: u.uid,
+          email: u.email || "",
+          name: u.displayName || "Business Owner",
+          photo_url: u.photoURL || ""
+        });
+      } catch (e) {
+        statusEl.className = "status err";
+        statusEl.textContent = "Please tap the Google button above to select your account.";
+      }
+    });
+  </script>
+</body>
+</html>';
+        exit;
+    }
+
+    // POST /auth/google-session-save
+    if ($route === 'auth/google-session-save' && $method === 'POST') {
+        $sessionId = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($input['session_id'] ?? ''));
+        $email = strtolower(trim((string) ($input['email'] ?? '')));
+        $name = trim((string) ($input['name'] ?? 'Business Owner'));
+        $firebaseUid = trim((string) ($input['firebase_uid'] ?? ''));
+        $photoUrl = trim((string) ($input['photo_url'] ?? ''));
+
+        if ($sessionId === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            jsonResponse(['success' => false, 'message' => 'Invalid Google session payload.'], 422);
+        }
+
+        // Store JSON in mobile_momo_transactions description/raw_response or mobile_email_otps
+        $payloadJson = json_encode([
+            'firebase_uid' => $firebaseUid,
+            'email' => $email,
+            'name' => $name,
+            'photo_url' => $photoUrl,
+        ]);
+        $expiresAt = date('Y-m-d H:i:s', time() + 10 * 60);
+        $pdo->prepare("INSERT INTO mobile_email_otps (email, otp, expires_at, is_used) VALUES (?, 'GOOGLE', ?, 0)")
+            ->execute(['gs_' . $sessionId . ':' . $email . ':' . base64_encode($name) . ':' . $firebaseUid, $expiresAt]);
+
+        jsonResponse(['success' => true]);
+    }
+
+    // GET /auth/google-session-poll
+    if ($route === 'auth/google-session-poll' && $method === 'GET') {
+        $sessionId = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($input['session_id'] ?? ''));
+        if ($sessionId === '') {
+            jsonResponse(['completed' => false]);
+        }
+
+        $like = 'gs_' . $sessionId . ':%';
+        $stmt = $pdo->prepare("
+            SELECT id, email FROM mobile_email_otps
+            WHERE email LIKE ? AND otp = 'GOOGLE' AND is_used = 0 AND expires_at >= NOW()
+            ORDER BY id DESC LIMIT 1
+        ");
+        $stmt->execute([$like]);
+        $row = $stmt->fetch();
+
+        if (!$row) {
+            jsonResponse(['completed' => false]);
+        }
+
+        $pdo->prepare("UPDATE mobile_email_otps SET is_used = 1 WHERE id = ?")->execute([$row['id']]);
+        $parts = explode(':', $row['email'], 4);
+        $email = $parts[1] ?? '';
+        $name = isset($parts[2]) ? (base64_decode($parts[2]) ?: 'Business Owner') : 'Business Owner';
+        $firebaseUid = $parts[3] ?? '';
+
+        jsonResponse([
+            'completed' => true,
+            'user' => [
+                'email' => $email,
+                'name' => $name,
+                'firebase_uid' => $firebaseUid,
+            ],
         ]);
     }
 
