@@ -137,11 +137,17 @@ class Database
         foreach ($tables as $sql) {
             $pdo->exec($sql);
         }
-        try {
-            $pdo->exec("ALTER TABLE `mobile_users` ADD COLUMN `firebase_uid` VARCHAR(128) DEFAULT NULL");
-        } catch (Throwable $e) {}
-        try {
-            $pdo->exec("ALTER TABLE `mobile_users` ADD COLUMN `auth_provider` VARCHAR(20) NOT NULL DEFAULT 'email'");
-        } catch (Throwable $e) {}
+        $cols = $pdo->query("SHOW COLUMNS FROM `mobile_users` LIKE 'firebase_uid'")->fetchAll();
+        if (empty($cols)) {
+            try {
+                $pdo->exec("ALTER TABLE `mobile_users` ADD COLUMN `firebase_uid` VARCHAR(128) DEFAULT NULL");
+            } catch (\Throwable $e) {}
+        }
+        $cols2 = $pdo->query("SHOW COLUMNS FROM `mobile_users` LIKE 'auth_provider'")->fetchAll();
+        if (empty($cols2)) {
+            try {
+                $pdo->exec("ALTER TABLE `mobile_users` ADD COLUMN `auth_provider` VARCHAR(20) NOT NULL DEFAULT 'email'");
+            } catch (\Throwable $e) {}
+        }
     }
 }
