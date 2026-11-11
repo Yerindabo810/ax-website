@@ -1178,8 +1178,9 @@ try {
         $merchantRef = $input['reference'] ?? $input['customer_reference'] ?? null;
         $result = $marzpay->checkStatus($internalReference, $merchantRef ? (string) $merchantRef : null);
 
-        $isSuccessful = !empty($result['is_completed']);
         $status = strtolower($result['status'] ?? 'pending');
+        $isSuccessful = !empty($result['is_completed']) || in_array($status, ['completed', 'successful', 'success'], true);
+        $isFailed = !empty($result['is_failed']) || in_array($status, ['failed', 'cancelled'], true);
 
         if ($isSuccessful && !empty($input['business_id']) && !empty($input['amount']) && !empty($input['credit_treasury'])) {
             $businessId = (int) $input['business_id'];
@@ -1193,7 +1194,8 @@ try {
             'status' => 'success',
             'payment_status' => $status,
             'is_completed' => $isSuccessful,
-            'is_failed' => !empty($result['is_failed']),
+            'is_failed' => $isFailed,
+            'message' => $result['message'] ?? ($isFailed ? 'Payment cancelled or failed.' : ($isSuccessful ? 'Payment successful.' : 'Payment pending.')),
             'data' => $result,
         ]);
     }
@@ -1555,6 +1557,72 @@ try {
                 ['code' => 'basic_annual', 'name' => 'Annual Basic', 'price_ugx' => 50000, 'period' => 'year'],
                 ['code' => 'standard_annual', 'name' => 'Annual Standard', 'price_ugx' => 100000, 'period' => 'year'],
             ],
+        ]);
+    }
+
+    // POST /cloud/subscribe
+    if ($route === 'cloud/subscribe' && $method === 'POST') {
+        [$user, $biz] = $requireAuthUser();
+        $planCode = trim((string) ($input['plan_code'] ?? 'standard_monthly'));
+        $phone = trim((string) ($input['phone_number'] ?? $user['phone'] ?? ''));
+
+        $plans = [
+            'basic_monthly' => ['name' => 'Basic Monthly', 'price' => 5000, 'days' => 30],
+            'standard_monthly' => ['name' => 'Standard Monthly', 'price' => 10000, 'days' => 30],
+            'basic_annual' => ['name' => 'Annual Basic', 'price' => 50000, 'days' => 365],
+            'standard_annual' => ['name' => 'Annual Standard', 'price' => 100000, 'days' => 365],
+        ];
+
+        $plan = $plans[$planCode] ?? $plans['standard_monthly'];
+
+        if (strlen($phone) < 9) {
+            jsonResponse(['status' => 'error', 'message' => 'Valid MTN or Airtel Mobile Money phone number required.'], 422);
+        }
+
+        $merchantRef = 'SUB-' . strtoupper(bin2hex(random_bytes(4)));
+        $promptRes = $marzpay->requestPayment($phone, (float) $plan['price'], $merchantRef, "TradeDesk {$plan['name']} Subscription", (int) $biz['id']);
+
+        if (!$promptRes['success']) {
+            jsonResponse(['status' => 'error', 'message' => $promptRes['message'] ?? 'Could not dispatch Mobile Money payment prompt.'], 400);
+        }
+
+        jsonResponse([
+            'status' => 'success',
+            'message' => "Payment prompt sent to {$phone}. Enter your Mobile Money PIN to activate your subscription.",
+            'internal_reference' => $promptRes['internal_reference'],
+            'customer_reference' => $merchantRef,
+            'amount' => $plan['price'],
+            'plan_code' => $planCode,
+            'plan_days' => $plan['days'],
+        ]);
+    }
+
+    // POST /cloud/confirm-subscription
+    if ($route === 'cloud/confirm-subscription' && $method === 'POST') {
+        [$user, $biz] = $requireAuthUser();
+        $internalRef = trim((string) ($input['internal_reference'] ?? ''));
+        $planCode = trim((string) ($input['plan_code'] ?? 'standard_monthly'));
+        $days = (int) ($input['days'] ?? 30);
+
+        $st = $marzpay->checkStatus($internalRef);
+        if (empty($st['is_completed'])) {
+            if (!empty($st['is_failed'])) {
+                jsonResponse(['status' => 'error', 'is_failed' => true, 'message' => 'Subscription payment was cancelled or failed.'], 400);
+            }
+            jsonResponse(['status' => 'pending', 'is_completed' => false, 'message' => 'Payment pending confirmation.'], 200);
+        }
+
+        // Activate plan
+        $expiresAt = date('Y-m-d H:i:s', strtotime("+{$days} days"));
+        $up = $pdo->prepare("UPDATE mobile_businesses SET plan = ?, subscription_expires_at = ?, status = 'active' WHERE id = ?");
+        $up->execute([$planCode, $expiresAt, (int) $biz['id']]);
+
+        jsonResponse([
+            'status' => 'success',
+            'is_completed' => true,
+            'message' => 'Subscription activated successfully!',
+            'plan' => $planCode,
+            'subscription_expires_at' => $expiresAt,
         ]);
     }
 

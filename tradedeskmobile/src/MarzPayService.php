@@ -252,12 +252,29 @@ class MarzPayService
         $uuidPattern = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
         $targetUuid = $internalRef;
 
-        if (!preg_match($uuidPattern, $targetUuid)) {
-            $stmt = $this->pdo->prepare("SELECT internal_reference FROM mobile_momo_transactions WHERE customer_reference = ? OR gateway_reference = ? ORDER BY id DESC LIMIT 1");
-            $stmt->execute([$internalRef, $internalRef]);
-            $row = $stmt->fetch();
-            if ($row && !empty($row['internal_reference'])) {
-                $targetUuid = $row['internal_reference'];
+        $stmt = $this->pdo->prepare("SELECT id, internal_reference, status, created_at FROM mobile_momo_transactions WHERE internal_reference = ? OR customer_reference = ? OR gateway_reference = ? ORDER BY id DESC LIMIT 1");
+        $stmt->execute([$internalRef, $internalRef, $internalRef]);
+        $row = $stmt->fetch();
+        if ($row && !empty($row['internal_reference'])) {
+            $targetUuid = $row['internal_reference'];
+        }
+
+        // Check if payment has exceeded 5 minutes (300 seconds) without completion -> Auto-Fail
+        if ($row && !empty($row['created_at'])) {
+            $ageSeconds = time() - strtotime($row['created_at']);
+            $currentStatus = strtolower($row['status'] ?? 'pending');
+            $alreadyDone = in_array($currentStatus, ['completed', 'successful', 'success'], true);
+
+            if (!$alreadyDone && $ageSeconds > 300) {
+                $up = $this->pdo->prepare("UPDATE mobile_momo_transactions SET status = 'failed' WHERE id = ?");
+                $up->execute([$row['id']]);
+                return [
+                    'success' => true,
+                    'status' => 'failed',
+                    'is_completed' => false,
+                    'is_failed' => true,
+                    'message' => 'Payment expired: Mobile Money prompt was not approved within 5 minutes.',
+                ];
             }
         }
 
