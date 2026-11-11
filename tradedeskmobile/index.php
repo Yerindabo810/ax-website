@@ -177,6 +177,13 @@ try {
         $stmt->execute([$token]);
         $user = $stmt->fetch();
         if (!$user) {
+            try {
+                $tStmt = $pdo->prepare("SELECT u.* FROM mobile_user_tokens mt JOIN mobile_users u ON mt.user_id = u.id WHERE mt.token = ? LIMIT 1");
+                $tStmt->execute([$token]);
+                $user = $tStmt->fetch();
+            } catch (\Throwable $e) {}
+        }
+        if (!$user) {
             jsonResponse(['success' => false, 'message' => 'Session expired or invalid token. Please sign in again.'], 401);
         }
         $bStmt = $pdo->prepare("SELECT * FROM mobile_businesses WHERE id = ? LIMIT 1");
@@ -1552,10 +1559,10 @@ try {
             'trial_ends_at' => $biz['trial_ends_at'],
             'subscription_expires_at' => $biz['subscription_expires_at'],
             'plans_catalog' => [
-                ['code' => 'basic_monthly', 'name' => 'Basic Monthly', 'price_ugx' => 5000, 'period' => 'month'],
-                ['code' => 'standard_monthly', 'name' => 'Standard Monthly', 'price_ugx' => 10000, 'period' => 'month'],
-                ['code' => 'basic_annual', 'name' => 'Annual Basic', 'price_ugx' => 50000, 'period' => 'year'],
-                ['code' => 'standard_annual', 'name' => 'Annual Standard', 'price_ugx' => 100000, 'period' => 'year'],
+                ['code' => 'starter_monthly', 'name' => 'Starter (50 sales/day • 100 SKUs)', 'price_ugx' => 5000, 'period' => 'month'],
+                ['code' => 'growth_monthly', 'name' => 'Growth (150 sales/day • 1,000 SKUs)', 'price_ugx' => 15000, 'period' => 'month'],
+                ['code' => 'pro_monthly', 'name' => 'Pro (300 sales/day • 2,500 SKUs)', 'price_ugx' => 30000, 'period' => 'month'],
+                ['code' => 'unlimited_monthly', 'name' => 'Unlimited Enterprise', 'price_ugx' => 50000, 'period' => 'month'],
             ],
         ]);
     }
@@ -1563,17 +1570,21 @@ try {
     // POST /cloud/subscribe
     if ($route === 'cloud/subscribe' && $method === 'POST') {
         [$user, $biz] = $requireAuthUser();
-        $planCode = trim((string) ($input['plan_code'] ?? 'standard_monthly'));
+        $planCode = trim((string) ($input['plan_code'] ?? 'growth_monthly'));
         $phone = trim((string) ($input['phone_number'] ?? $user['phone'] ?? ''));
 
         $plans = [
-            'basic_monthly' => ['name' => 'Basic Monthly', 'price' => 5000, 'days' => 30],
-            'standard_monthly' => ['name' => 'Standard Monthly', 'price' => 10000, 'days' => 30],
-            'basic_annual' => ['name' => 'Annual Basic', 'price' => 50000, 'days' => 365],
-            'standard_annual' => ['name' => 'Annual Standard', 'price' => 100000, 'days' => 365],
+            'starter_monthly' => ['name' => 'Starter Monthly', 'price' => 5000, 'days' => 30],
+            'growth_monthly' => ['name' => 'Growth Monthly', 'price' => 15000, 'days' => 30],
+            'pro_monthly' => ['name' => 'Pro High-Volume Monthly', 'price' => 30000, 'days' => 30],
+            'unlimited_monthly' => ['name' => 'Unlimited Enterprise Monthly', 'price' => 50000, 'days' => 30],
+            'basic_monthly' => ['name' => 'Starter Monthly', 'price' => 5000, 'days' => 30],
+            'standard_monthly' => ['name' => 'Growth Monthly', 'price' => 15000, 'days' => 30],
+            'basic_annual' => ['name' => 'Annual Starter', 'price' => 50000, 'days' => 365],
+            'standard_annual' => ['name' => 'Annual Growth', 'price' => 150000, 'days' => 365],
         ];
 
-        $plan = $plans[$planCode] ?? $plans['standard_monthly'];
+        $plan = $plans[$planCode] ?? $plans['growth_monthly'];
 
         if (strlen($phone) < 9) {
             jsonResponse(['status' => 'error', 'message' => 'Valid MTN or Airtel Mobile Money phone number required.'], 422);
