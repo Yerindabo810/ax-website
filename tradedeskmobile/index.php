@@ -327,6 +327,108 @@ try {
         ]);
     }
 
+    // POST /auth/forgot-password
+    if ($route === 'auth/forgot-password' && $method === 'POST') {
+        $email = strtolower(trim((string) ($input['email'] ?? '')));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            jsonResponse(['success' => false, 'message' => 'Please provide a valid email address.'], 422);
+        }
+
+        $uStmt = $pdo->prepare("SELECT id, name FROM mobile_users WHERE email = ? LIMIT 1");
+        $uStmt->execute([$email]);
+        $user = $uStmt->fetch();
+
+        if (!$user) {
+            jsonResponse(['success' => false, 'message' => 'No account found with this email address.'], 404);
+        }
+
+        $otp = (string) random_int(100000, 999999);
+        $expiresAt = date('Y-m-d H:i:s', time() + 15 * 60);
+
+        $pdo->prepare("INSERT INTO mobile_email_otps (email, otp, expires_at, is_used) VALUES (?, ?, ?, 0)")
+            ->execute([$email, $otp, $expiresAt]);
+
+        $year = date('Y');
+        $userName = htmlspecialchars($user['name'] ?: 'Shop Owner');
+        $html = "
+        <div style='font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;'>
+            <div style='text-align: center; margin-bottom: 20px;'>
+                <h2 style='color: #0b4fb8; margin: 0;'>Trade<span style='color: #f26a0e;'>Desk</span> Mobile</h2>
+                <p style='color: #64748b; font-size: 14px; margin-top: 4px;'>Password Reset Request</p>
+            </div>
+            <p style='color: #1e293b; font-size: 16px; line-height: 1.5;'>Hello {$userName},</p>
+            <p style='color: #1e293b; font-size: 15px; line-height: 1.5;'>We received a request to reset your password for your <strong>TradeDesk Mobile</strong> account.</p>
+            <p style='color: #1e293b; font-size: 15px;'>Your 6-digit password reset verification code is:</p>
+            <div style='text-align: center; margin: 28px 0;'>
+                <span style='display: inline-block; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #b91c1c; background: #fef2f2; padding: 12px 28px; border-radius: 8px; border: 1px dashed #fca5a5;'>{$otp}</span>
+            </div>
+            <p style='color: #64748b; font-size: 13px; line-height: 1.4;'>This code expires in 15 minutes. If you did not request a password reset, please ignore this email or contact support immediately.</p>
+            <hr style='border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;' />
+            <p style='text-align: center; font-size: 12px; color: #94a3b8; margin: 0;'>&copy; {$year} TradeDesk Mobile &bull; AX Technologies Uganda.</p>
+        </div>";
+
+        $plain = "TradeDesk Mobile - Password Reset\n\nYour password reset code is: {$otp}\n\nThis code expires in 15 minutes.";
+        $sent = $mailer->send($email, "{$otp} is your TradeDesk Mobile Password Reset Code", $html, $plain);
+
+        if (!$sent) {
+            jsonResponse(['success' => false, 'message' => 'Failed to send reset email. Please try again.'], 500);
+        }
+
+        jsonResponse([
+            'success' => true,
+            'message' => 'Password reset code sent to ' . $email,
+        ]);
+    }
+
+    // POST /auth/reset-password
+    if ($route === 'auth/reset-password' && $method === 'POST') {
+        $email = strtolower(trim((string) ($input['email'] ?? '')));
+        $otp = trim((string) ($input['otp'] ?? ''));
+        $newPassword = (string) ($input['new_password'] ?? '');
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            jsonResponse(['success' => false, 'message' => 'Please provide a valid email address.'], 422);
+        }
+        if (strlen($otp) !== 6) {
+            jsonResponse(['success' => false, 'message' => 'Please enter the 6-digit verification code.'], 422);
+        }
+        if (strlen($newPassword) < 6) {
+            jsonResponse(['success' => false, 'message' => 'New password must be at least 6 characters long.'], 422);
+        }
+
+        $oStmt = $pdo->prepare("
+            SELECT id FROM mobile_email_otps
+            WHERE email = ? AND otp = ? AND is_used = 0 AND expires_at >= NOW()
+            ORDER BY id DESC LIMIT 1
+        ");
+        $oStmt->execute([$email, $otp]);
+        $rec = $oStmt->fetch();
+
+        if (!$rec) {
+            jsonResponse(['success' => false, 'message' => 'Invalid or expired verification code.'], 422);
+        }
+
+        $uStmt = $pdo->prepare("SELECT id FROM mobile_users WHERE email = ? LIMIT 1");
+        $uStmt->execute([$email]);
+        $user = $uStmt->fetch();
+
+        if (!$user) {
+            jsonResponse(['success' => false, 'message' => 'No account found with this email address.'], 404);
+        }
+
+        $newHash = password_hash($newPassword, PASSWORD_BCRYPT);
+        $pdo->prepare("UPDATE mobile_users SET password = ?, updated_at = NOW() WHERE id = ?")
+            ->execute([$newHash, $user['id']]);
+
+        $pdo->prepare("UPDATE mobile_email_otps SET is_used = 1 WHERE id = ?")
+            ->execute([$rec['id']]);
+
+        jsonResponse([
+            'success' => true,
+            'message' => 'Your password has been reset successfully. Please sign in with your new password.',
+        ]);
+    }
+
     // GET /auth/check-subdomain
     if ($route === 'auth/check-subdomain' && $method === 'GET') {
         $sub = strtolower(trim((string) ($input['subdomain'] ?? '')));
@@ -369,6 +471,14 @@ try {
 
         if ($businessName === '' || $userName === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             jsonResponse(['success' => false, 'message' => 'Business name, owner name, and valid email are required.'], 422);
+        }
+
+        if ($authProvider === 'email') {
+            $vCheck = $pdo->prepare("SELECT id FROM mobile_email_otps WHERE email = ? AND is_used = 1 AND created_at > (NOW() - INTERVAL 2 HOUR) ORDER BY id DESC LIMIT 1");
+            $vCheck->execute([$email]);
+            if (!$vCheck->fetch()) {
+                jsonResponse(['success' => false, 'message' => 'Please verify your email address with the 6-digit verification code before registering.'], 403);
+            }
         }
 
         if ($subdomain === '') {
@@ -1090,6 +1200,33 @@ try {
             $pdo->prepare("UPDATE mobile_users SET api_token = NULL WHERE api_token = ?")->execute([$token]);
         }
         jsonResponse(['success' => true, 'message' => 'Logged out successfully.']);
+    }
+
+    // POST /user/update-password or POST /auth/update-password
+    if (($route === 'user/update-password' || $route === 'auth/update-password') && $method === 'POST') {
+        [$user, $biz] = $requireAuthUser();
+        $currentPassword = (string) ($input['current_password'] ?? '');
+        $newPassword = (string) ($input['new_password'] ?? '');
+
+        if ($currentPassword === '' || $newPassword === '') {
+            jsonResponse(['success' => false, 'message' => 'Current password and new password are required.'], 422);
+        }
+        if (strlen($newPassword) < 6) {
+            jsonResponse(['success' => false, 'message' => 'New password must be at least 6 characters long.'], 422);
+        }
+
+        if (!empty($user['password']) && !password_verify($currentPassword, $user['password'])) {
+            jsonResponse(['success' => false, 'message' => 'Current password is incorrect. Please try again.'], 422);
+        }
+
+        $newHash = password_hash($newPassword, PASSWORD_BCRYPT);
+        $pdo->prepare("UPDATE mobile_users SET password = ?, updated_at = NOW() WHERE id = ?")
+            ->execute([$newHash, $user['id']]);
+
+        jsonResponse([
+            'success' => true,
+            'message' => 'Password changed successfully!',
+        ]);
     }
 
     // ============================================================================
