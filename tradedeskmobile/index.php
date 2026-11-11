@@ -196,21 +196,10 @@ try {
     // 0. HEALTH & STATUS ENDPOINT
     // ============================================================================
     if ($route === '' || $route === 'health' || $route === 'status' || $route === 'index.php') {
-        $bizCount = (int) $pdo->query("SELECT COUNT(*) FROM mobile_businesses")->fetchColumn();
-        $userCount = (int) $pdo->query("SELECT COUNT(*) FROM mobile_users")->fetchColumn();
-        $backupCount = (int) $pdo->query("SELECT COUNT(*) FROM mobile_cloud_backups")->fetchColumn();
         jsonResponse([
             'status' => 'online',
             'success' => true,
-            'service' => 'TradeDesk Mobile Standalone Cloud API',
-            'version' => $config['app']['version'],
-            'database' => $config['db']['database'],
-            'stats' => [
-                'registered_shops' => $bizCount,
-                'registered_owners' => $userCount,
-                'cloud_backups' => $backupCount,
-            ],
-            'timestamp' => date('c'),
+            'service' => 'TradeDesk API',
         ]);
     }
 
