@@ -13,11 +13,10 @@ use TradeDeskMobile\SmtpMailer;
 use TradeDeskMobile\MarzPayService;
 use TradeDeskMobile\AdminDashboard;
 
-// CORS & JSON Headers
+// CORS Headers
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, Accept, X-Requested-With');
-header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: 0');
@@ -29,6 +28,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
 
 function jsonResponse(array $payload, int $status = 200): void
 {
+    header('Content-Type: application/json; charset=utf-8', true);
     http_response_code($status);
     echo json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;

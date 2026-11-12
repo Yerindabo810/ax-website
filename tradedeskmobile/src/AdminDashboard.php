@@ -280,6 +280,7 @@ class AdminDashboard
 
     private function renderLoginHtml(): void
     {
+        header('Content-Type: text/html; charset=utf-8', true);
         $baseUrl = $this->getBaseUrl();
         ?>
 <!DOCTYPE html>
@@ -585,6 +586,7 @@ class AdminDashboard
 
     private function renderDashboardHtml(): void
     {
+        header('Content-Type: text/html; charset=utf-8', true);
         $baseUrl = $this->getBaseUrl();
 
         // Query platform metrics
@@ -1620,3 +1622,4 @@ class AdminDashboard
         exit;
     }
 }
+
