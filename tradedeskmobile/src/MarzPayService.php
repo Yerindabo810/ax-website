@@ -359,9 +359,16 @@ class MarzPayService
             }
         }
 
-        // 3. Fallback: Query /transactions?reference=... (Identical to TradeDesk Web POS detection)
-        $queryRef = $merchantRef ?: ($row['customer_reference'] ?? ($row['gateway_reference'] ?? $targetUuid));
-        if ($queryRef) {
+        // 3. Fallback: Query /transactions?reference=... across all possible references
+        $candidateRefs = array_unique(array_filter([
+            $row['gateway_reference'] ?? null,
+            $row['customer_reference'] ?? null,
+            $row['internal_reference'] ?? null,
+            $merchantRef,
+            $targetUuid,
+        ]));
+
+        foreach ($candidateRefs as $queryRef) {
             $qRes = $this->httpRequest('GET', '/transactions', [
                 'reference' => $queryRef,
                 'per_page' => 1,
@@ -387,13 +394,15 @@ class MarzPayService
                         $up->execute([$row['id']]);
                     }
 
-                    return [
-                        'success' => true,
-                        'status' => $st,
-                        'is_completed' => $isCompleted,
-                        'is_failed' => $isFailed,
-                        'raw' => $qData,
-                    ];
+                    if ($isCompleted || $isFailed) {
+                        return [
+                            'success' => true,
+                            'status' => $st,
+                            'is_completed' => $isCompleted,
+                            'is_failed' => $isFailed,
+                            'raw' => $qData,
+                        ];
+                    }
                 }
             }
         }
