@@ -1404,18 +1404,32 @@ try {
             $actionLabel = 'Airtime / Data Bundle Top-Up';
         } elseif ($actionType === 'withdrawal') {
             $actionLabel = 'Mobile Money Withdrawal';
+            if ($amount < 5000) {
+                jsonResponse(['status' => 'error', 'message' => 'Minimum withdrawal amount is UGX 5,000.'], 422);
+            }
+            $charge = 660.0;
+            $totalRequired = $amount + $charge;
+            $currentBal = (float) ($biz['wallet_balance'] ?? 0);
+            if ($currentBal < $totalRequired) {
+                jsonResponse([
+                    'status' => 'error',
+                    'message' => 'Insufficient funds: Your Mobile Money wallet balance is UGX ' . number_format($currentBal) . ', but UGX ' . number_format($totalRequired) . ' is required (UGX ' . number_format($amount) . ' withdrawal + UGX 660 fee).',
+                ], 422);
+            }
         } else {
             $actionLabel = 'Payment Authorization';
         }
 
         $formattedAmt = 'UGX ' . number_format($amount);
         $shopName = $biz['name'] ?? 'TradeDesk Mobile Shop';
+        $feeText = $actionType === 'withdrawal' ? "<div style='font-size: 13px; color: #dc2626; margin-top: 4px;'>Withdrawal Fee: <strong>UGX 660</strong> (Total account deduction: <strong>UGX " . number_format($amount + 660) . "</strong>)</div>" : "";
         $html = "
         <div style='font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;'>
             <h2 style='color: #0b4fb8; margin: 0; text-align: center;'>Trade<span style='color: #f26a0e;'>Desk</span> Mobile</h2>
             <div style='background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin: 18px 0;'>
                 <div style='font-size: 13px; color: #475569;'>Payment authorization requested for <strong>{$shopName}</strong>:</div>
                 <div style='font-size: 17px; font-weight: 800; color: #0f172a; margin-top: 6px;'>{$actionLabel}: <span style='color: #b91c1c;'>{$formattedAmt}</span></div>
+                {$feeText}
                 " . ($details ? "<div style='font-size: 12px; color: #64748b; margin-top: 4px;'>Details: <strong>{$details}</strong></div>" : "") . "
             </div>
             <p style='font-size: 14px; color: #1e293b;'>Enter this 6-digit authorization code in TradeDesk Mobile:</p>
@@ -1425,7 +1439,7 @@ try {
             <p style='font-size: 12px; color: #64748b; text-align: center;'>Expires in 10 minutes.</p>
         </div>";
 
-        $mailer->send($email, "{$otp} is your TradeDesk Mobile Payment Code ({$formattedAmt})", $html);
+        $mailer->send($email, "{$otp} is your TradeDesk Mobile Withdrawal Code ({$formattedAmt})", $html);
         $masked = maskEmailAddress($email);
 
         jsonResponse([
@@ -1442,9 +1456,27 @@ try {
         $phone = trim((string) ($input['phone_number'] ?? ''));
         $otp = trim((string) ($input['otp'] ?? ''));
         $notes = trim((string) ($input['notes'] ?? 'TradeDesk Mobile Owner Withdrawal'));
+        $charge = 660.0;
+        $totalRequired = $amount + $charge;
 
         if ($amount < 5000) {
-            jsonResponse(['status' => 'error', 'message' => 'Minimum withdrawal is UGX 5,000.'], 422);
+            jsonResponse(['status' => 'error', 'message' => 'Minimum withdrawal amount is UGX 5,000.'], 422);
+        }
+
+        if (strlen($phone) < 9) {
+            jsonResponse(['status' => 'error', 'message' => 'Valid recipient phone number is required.'], 422);
+        }
+
+        // Check wallet balance
+        $bStmt = $pdo->prepare("SELECT wallet_balance FROM mobile_businesses WHERE id = ?");
+        $bStmt->execute([$businessId]);
+        $currentBal = (float) ($bStmt->fetchColumn() ?: 0);
+
+        if ($currentBal < $totalRequired) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Insufficient funds: Your Mobile Money wallet balance is UGX ' . number_format($currentBal) . ', but UGX ' . number_format($totalRequired) . ' is required (UGX ' . number_format($amount) . ' withdrawal + UGX 660 fee).',
+            ], 422);
         }
 
         $verifyOwnerPaymentOtp($businessId, $otp);
@@ -1458,18 +1490,40 @@ try {
             ], 422);
         }
 
+        // Deduct withdrawal amount + 660 fee from wallet
         $pdo->prepare("UPDATE mobile_businesses SET wallet_balance = GREATEST(0, wallet_balance - ?) WHERE id = ?")
-            ->execute([$amount, $businessId]);
+            ->execute([$totalRequired, $businessId]);
 
-        $bStmt = $pdo->prepare("SELECT wallet_balance FROM mobile_businesses WHERE id = ?");
+        // Record in mobile_momo_transactions
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO mobile_momo_transactions
+                (business_id, internal_reference, customer_reference, gateway_reference, type, provider, phone_number, amount, charge, status, credited, description)
+                VALUES (?, ?, ?, ?, 'disbursement', ?, ?, ?, ?, 'completed', 1, ?)
+            ");
+            $stmt->execute([
+                $businessId,
+                $res['reference'],
+                $res['reference'],
+                $res['reference'],
+                $res['provider'] ?? 'MOMO',
+                $res['phone_number'] ?? $phone,
+                $amount,
+                $charge,
+                $notes . ' (Withdrawal Fee: UGX 660)',
+            ]);
+        } catch (\Exception $e) {}
+
         $bStmt->execute([$businessId]);
         $newBal = (float) ($bStmt->fetchColumn() ?: 0);
 
         jsonResponse([
             'status' => 'success',
-            'message' => 'UGX ' . number_format($amount) . " withdrawn to {$res['phone_number']} ({$res['provider']})!",
+            'message' => 'UGX ' . number_format($amount) . " withdrawn to {$res['phone_number']} ({$res['provider']})! Fee: UGX 660.",
             'data' => [
                 'withdrawn_amount' => $amount,
+                'charge' => $charge,
+                'total_deducted' => $totalRequired,
                 'phone_number' => $res['phone_number'],
                 'provider' => $res['provider'],
                 'reference' => $res['reference'],
