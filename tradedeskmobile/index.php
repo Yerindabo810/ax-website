@@ -1522,7 +1522,15 @@ try {
             <p style='font-size: 12px; color: #64748b; text-align: center;'>Expires in 10 minutes.</p>
         </div>";
 
-        $mailer->send($email, "{$otp} is your TradeDesk Mobile Withdrawal Code ({$formattedAmt})", $html);
+        $subject = "{$otp} is your TradeDesk Authorization Code ({$formattedAmt})";
+        if ($actionType === 'airtime') {
+            $subject = "{$otp} is your TradeDesk Airtime Top-Up Code ({$formattedAmt})";
+        } elseif ($actionType === 'bill_payment') {
+            $subject = "{$otp} is your TradeDesk Bill Payment Code ({$formattedAmt})";
+        } elseif ($actionType === 'withdrawal') {
+            $subject = "{$otp} is your TradeDesk Mobile Withdrawal Code ({$formattedAmt})";
+        }
+        $mailer->send($email, $subject, $html);
         $masked = maskEmailAddress($email);
 
         jsonResponse([
