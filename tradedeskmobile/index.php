@@ -11,6 +11,7 @@ declare(strict_types=1);
 use TradeDeskMobile\Database;
 use TradeDeskMobile\SmtpMailer;
 use TradeDeskMobile\MarzPayService;
+use TradeDeskMobile\AdminDashboard;
 
 // CORS & JSON Headers
 header('Access-Control-Allow-Origin: *');
@@ -58,6 +59,7 @@ try {
     require_once __DIR__ . '/src/Database.php';
     require_once __DIR__ . '/src/SmtpMailer.php';
     require_once __DIR__ . '/src/MarzPayService.php';
+    require_once __DIR__ . '/src/AdminDashboard.php';
 
     function getRequestBody(): array
     {
@@ -189,6 +191,14 @@ try {
         if (!$user) {
             jsonResponse(['success' => false, 'message' => 'Session expired or invalid token. Please sign in again.'], 401);
         }
+
+        // Live Presence Tracking: Update user's last_seen_at timestamp & IP address
+        try {
+            $clientIp = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? null;
+            $pdo->prepare("UPDATE mobile_users SET last_seen_at = NOW(), last_ip = ? WHERE id = ?")
+                ->execute([$clientIp, (int) $user['id']]);
+        } catch (\Throwable $e) {}
+
         $bStmt = $pdo->prepare("SELECT * FROM mobile_businesses WHERE id = ? LIMIT 1");
         $bStmt->execute([$user['business_id']]);
         $biz = $bStmt->fetch() ?: [];
@@ -196,13 +206,57 @@ try {
     };
 
     // ============================================================================
-    // 0. HEALTH & STATUS ENDPOINT
+    // 0. ADMIN WEB PORTAL ROUTING (axtechnologies.net/tradedeskmobile/)
     // ============================================================================
-    if ($route === '' || $route === 'health' || $route === 'status' || $route === 'index.php') {
+    $adminDashboard = new AdminDashboard($pdo, $mailer, $config);
+    if ($adminDashboard->handle($route, $method, $input)) {
+        exit;
+    }
+
+    // Health / API status fallback (for JSON monitoring tools)
+    if ($route === 'health' || $route === 'status' || $route === 'api') {
         jsonResponse([
             'status' => 'online',
             'success' => true,
             'service' => 'TradeDesk API',
+        ]);
+    }
+
+    // ============================================================================
+    // IN-APP NOTIFICATIONS PULL (PULLED BY USER APP UPON CONNECTING TO INTERNET)
+    // ============================================================================
+    if (($route === 'notifications/pull' || $route === 'pos/notifications/pull') && $method === 'GET') {
+        [$user, $biz] = $requireAuthUser();
+        $userId = (int) $user['id'];
+        $bizId = (int) ($user['business_id'] ?? 0);
+
+        $stmt = $pdo->prepare("
+            SELECT n.*
+            FROM mobile_broadcast_notifications n
+            WHERE (n.business_id IS NULL OR n.business_id = ?)
+              AND (n.user_id IS NULL OR n.user_id = ?)
+              AND n.id NOT IN (
+                  SELECT notification_id FROM mobile_notification_deliveries WHERE user_id = ?
+              )
+            ORDER BY n.id ASC
+            LIMIT 50
+        ");
+        $stmt->execute([$bizId, $userId, $userId]);
+        $pending = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (!empty($pending)) {
+            $insDeliv = $pdo->prepare("INSERT IGNORE INTO mobile_notification_deliveries (notification_id, user_id) VALUES (?, ?)");
+            foreach ($pending as $p) {
+                try {
+                    $insDeliv->execute([$p['id'], $userId]);
+                } catch (\Throwable $e) {}
+            }
+        }
+
+        jsonResponse([
+            'status' => 'success',
+            'count' => count($pending),
+            'data' => $pending,
         ]);
     }
 

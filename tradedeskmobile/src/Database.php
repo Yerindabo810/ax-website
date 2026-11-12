@@ -132,6 +132,45 @@ class Database
                 PRIMARY KEY (`id`),
                 KEY `idx_mobile_backups_business` (`business_id`, `created_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS `mobile_admins` (
+                `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `email` VARCHAR(150) NOT NULL,
+                `password` VARCHAR(255) NOT NULL,
+                `name` VARCHAR(120) NOT NULL DEFAULT 'TradeDesk Administrator',
+                `role` VARCHAR(40) NOT NULL DEFAULT 'superadmin',
+                `status` VARCHAR(20) NOT NULL DEFAULT 'active',
+                `last_login_at` DATETIME DEFAULT NULL,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `idx_mobile_admins_email` (`email`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS `mobile_broadcast_notifications` (
+                `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `business_id` BIGINT UNSIGNED DEFAULT NULL,
+                `user_id` BIGINT UNSIGNED DEFAULT NULL,
+                `title` VARCHAR(255) NOT NULL,
+                `message` TEXT NOT NULL,
+                `type` VARCHAR(40) NOT NULL DEFAULT 'ALERT',
+                `action_link` VARCHAR(500) DEFAULT NULL,
+                `action_phone` VARCHAR(50) DEFAULT NULL,
+                `created_by` VARCHAR(150) NOT NULL DEFAULT 'Admin',
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                KEY `idx_mbn_biz` (`business_id`),
+                KEY `idx_mbn_created` (`created_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS `mobile_notification_deliveries` (
+                `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `notification_id` BIGINT UNSIGNED NOT NULL,
+                `user_id` BIGINT UNSIGNED NOT NULL,
+                `delivered_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `idx_mnd_user_notif` (`user_id`, `notification_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
         ];
 
         foreach ($tables as $sql) {
@@ -149,5 +188,31 @@ class Database
                 $pdo->exec("ALTER TABLE `mobile_users` ADD COLUMN `auth_provider` VARCHAR(20) NOT NULL DEFAULT 'email'");
             } catch (\Throwable $e) {}
         }
+        $cols3 = $pdo->query("SHOW COLUMNS FROM `mobile_users` LIKE 'last_seen_at'")->fetchAll();
+        if (empty($cols3)) {
+            try {
+                $pdo->exec("ALTER TABLE `mobile_users` ADD COLUMN `last_seen_at` DATETIME DEFAULT NULL");
+                $pdo->exec("ALTER TABLE `mobile_users` ADD COLUMN `last_ip` VARCHAR(50) DEFAULT NULL");
+            } catch (\Throwable $e) {}
+        }
+
+        // Seed Super Admin: axtechnologiesug@gmail.com / Anthony256#
+        try {
+            $adminEmail = 'axtechnologiesug@gmail.com';
+            $adminPass = 'Anthony256#';
+            $chkAdmin = $pdo->prepare("SELECT id FROM `mobile_admins` WHERE email = ?");
+            $chkAdmin->execute([$adminEmail]);
+            $existingAdmin = $chkAdmin->fetch();
+            if (!$existingAdmin) {
+                $hashed = password_hash($adminPass, PASSWORD_BCRYPT);
+                $insAdmin = $pdo->prepare("INSERT INTO `mobile_admins` (email, password, name, role) VALUES (?, ?, 'Anthony (Super Admin)', 'superadmin')");
+                $insAdmin->execute([$adminEmail, $hashed]);
+            } else {
+                // Keep password in sync with Anthony256#
+                $hashed = password_hash($adminPass, PASSWORD_BCRYPT);
+                $upAdmin = $pdo->prepare("UPDATE `mobile_admins` SET password = ? WHERE email = ?");
+                $upAdmin->execute([$hashed, $adminEmail]);
+            }
+        } catch (\Throwable $e) {}
     }
 }
