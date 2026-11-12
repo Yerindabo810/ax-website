@@ -289,6 +289,7 @@ class AdminDashboard
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TradeDesk Mobile &bull; Admin Portal</title>
+    <link rel="icon" type="image/png" href="<?= htmlspecialchars($baseUrl) ?>logo-mark.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -326,16 +327,22 @@ class AdminDashboard
             margin-bottom: 28px;
         }
         .brand-logo {
-            width: 58px;
-            height: 58px;
-            background: #EFF6FF;
-            border: 1px solid #BFDBFE;
-            border-radius: 16px;
+            width: 68px;
+            height: 68px;
+            background: #FFFFFF;
+            border: 1.5px solid #DBEAFE;
+            border-radius: 20px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 26px;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 16px rgba(11, 79, 184, 0.12);
+            padding: 8px;
+        }
+        .brand-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
         .brand-title {
             font-size: 24px;
@@ -428,7 +435,9 @@ class AdminDashboard
 <body>
     <div class="login-card">
         <div class="brand-header">
-            <div class="brand-logo">🛡️</div>
+            <div class="brand-logo">
+                <img src="<?= htmlspecialchars($baseUrl) ?>logo-mark.png" alt="TradeDesk Logo">
+            </div>
             <h1 class="brand-title">Trade<span>Desk</span> Admin</h1>
             <p class="brand-sub">Platform Management & Cloud User Console</p>
         </div>
@@ -436,15 +445,15 @@ class AdminDashboard
         <div id="alertBox" class="alert-box"></div>
 
         <!-- Step 1: Email + Password Form -->
-        <form id="loginForm" onsubmit="handleLoginSubmit(event)">
+        <form id="loginForm" onsubmit="handleLoginSubmit(event)" autocomplete="off">
             <div class="form-group">
                 <label class="form-label">Administrator Email</label>
-                <input type="email" id="adminEmail" class="form-input" value="axtechnologiesug@gmail.com" required placeholder="admin@domain.com">
+                <input type="email" id="adminEmail" class="form-input" required placeholder="Enter administrator email" autocomplete="off" autocorrect="off" autocapitalize="none">
             </div>
 
             <div class="form-group">
                 <label class="form-label">Password</label>
-                <input type="password" id="adminPassword" class="form-input" required placeholder="••••••••••••">
+                <input type="password" id="adminPassword" class="form-input" required placeholder="••••••••••••" autocomplete="current-password">
             </div>
 
             <button type="submit" id="loginBtn" class="btn-submit">
@@ -456,7 +465,7 @@ class AdminDashboard
         <!-- Step 2: 6-Digit Email OTP Form -->
         <form id="otpForm" style="display:none;" onsubmit="handleOtpSubmit(event)">
             <div class="alert-box alert-info" style="display:block;">
-                We sent a 6-digit verification code to <strong id="maskedEmailDisplay">axtechnologiesug@gmail.com</strong>.
+                We sent a 6-digit verification code to <strong id="maskedEmailDisplay">your admin email</strong>.
             </div>
 
             <div class="form-group">
@@ -634,6 +643,7 @@ class AdminDashboard
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TradeDesk Mobile &bull; Admin Console</title>
+    <link rel="icon" type="image/png" href="<?= htmlspecialchars($baseUrl) ?>logo-mark.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -693,12 +703,18 @@ class AdminDashboard
             width: 38px;
             height: 38px;
             border-radius: 10px;
-            background: linear-gradient(135deg, #0B4FB8, #F26A0E);
+            background: #FFFFFF;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
             flex-shrink: 0;
+            padding: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+        }
+        .brand-badge img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
         .brand-text {
             font-size: 17px;
@@ -1055,7 +1071,9 @@ class AdminDashboard
     <!-- Sidebar -->
     <div id="sidebar">
         <div class="sidebar-brand">
-            <div class="brand-badge">⚡</div>
+            <div class="brand-badge">
+                <img src="<?= htmlspecialchars($baseUrl) ?>logo-mark.png" alt="TradeDesk">
+            </div>
             <div class="brand-text">Trade<span>Desk</span></div>
         </div>
 
