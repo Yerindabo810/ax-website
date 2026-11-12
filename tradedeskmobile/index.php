@@ -261,6 +261,26 @@ try {
     }
 
     // ============================================================================
+    // PUSH NOTIFICATION TOKEN REGISTRATION
+    // ============================================================================
+    if (($route === 'users/push-token' || $route === 'api/users/push-token' || $route === 'pos/users/push-token') && $method === 'POST') {
+        [$user, $biz] = $requireAuthUser();
+        $userId = (int) $user['id'];
+        $pushToken = trim((string) ($input['push_token'] ?? ''));
+        $platform = trim((string) ($input['platform'] ?? 'android'));
+
+        if (!empty($pushToken)) {
+            $stmt = $pdo->prepare("UPDATE mobile_users SET push_token = ?, push_platform = ? WHERE id = ?");
+            $stmt->execute([$pushToken, $platform, $userId]);
+        }
+
+        jsonResponse([
+            'status' => 'success',
+            'message' => 'Device push token successfully registered',
+        ]);
+    }
+
+    // ============================================================================
     // 1. AUTHENTICATION & ONBOARDING ROUTES (/auth/*)
     // ============================================================================
 

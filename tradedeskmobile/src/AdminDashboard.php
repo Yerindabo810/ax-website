@@ -253,12 +253,134 @@ class AdminDashboard
             $_SESSION['admin_name'] ?? 'Admin',
         ]);
 
+        $notifId = (int) $this->pdo->lastInsertId();
+
+        // Push immediate popup notification to online/backgrounded/closed mobile devices via Expo/FCM
+        $pushedCount = $this->dispatchExpoPushNotification(
+            $businessId,
+            $userId,
+            $title,
+            $message,
+            $type,
+            $actionLink ?: null,
+            $actionPhone ?: null,
+            $notifId
+        );
+
         echo json_encode([
             'status' => 'success',
-            'message' => 'Notification dispatched! It will be automatically delivered to users when they connect to the internet.',
-            'id' => $this->pdo->lastInsertId(),
+            'message' => 'Notification dispatched! ' . ($pushedCount > 0 ? "Popup push delivered to {$pushedCount} registered device(s)." : 'Queued for automatic sync when devices connect to the internet.'),
+            'id' => $notifId,
+            'pushed_count' => $pushedCount,
         ]);
         exit;
+    }
+
+    private function dispatchExpoPushNotification(
+        ?int $businessId,
+        ?int $userId,
+        string $title,
+        string $message,
+        string $type,
+        ?string $actionLink,
+        ?string $actionPhone,
+        int $notificationId
+    ): int {
+        try {
+            $tokens = [];
+            if ($userId) {
+                $st = $this->pdo->prepare("SELECT push_token FROM `mobile_users` WHERE id = ? AND push_token IS NOT NULL AND push_token != ''");
+                $st->execute([$userId]);
+                $tokens = $st->fetchAll(PDO::FETCH_COLUMN);
+            } elseif ($businessId) {
+                $st = $this->pdo->prepare("SELECT push_token FROM `mobile_users` WHERE business_id = ? AND push_token IS NOT NULL AND push_token != ''");
+                $st->execute([$businessId]);
+                $tokens = $st->fetchAll(PDO::FETCH_COLUMN);
+            } else {
+                $st = $this->pdo->query("SELECT push_token FROM `mobile_users` WHERE push_token IS NOT NULL AND push_token != ''");
+                $tokens = $st->fetchAll(PDO::FETCH_COLUMN);
+            }
+
+            $validTokens = [];
+            foreach (array_unique($tokens) as $t) {
+                $t = trim((string) $t);
+                if (str_starts_with($t, 'ExponentPushToken') || str_starts_with($t, 'ExpoPushToken')) {
+                    $validTokens[] = $t;
+                }
+            }
+
+            if (empty($validTokens)) {
+                return 0;
+            }
+
+            $messages = [];
+            foreach ($validTokens as $token) {
+                $messages[] = [
+                    'to' => $token,
+                    'sound' => 'default',
+                    'title' => $title,
+                    'body' => $message,
+                    'priority' => 'high',
+                    'channelId' => 'default',
+                    '_displayInForeground' => true,
+                    'data' => [
+                        'id' => $notificationId,
+                        'type' => $type,
+                        'link' => $actionLink,
+                        'phone' => $actionPhone,
+                    ],
+                ];
+            }
+
+            $chunks = array_chunk($messages, 100);
+            foreach ($chunks as $chunk) {
+                $ch = curl_init('https://exp.host/--/api/v2/push/send');
+                curl_setopt_array($ch, [
+                    CURLOPT_POST => true,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_HTTPHEADER => [
+                        'Accept: application/json',
+                        'Content-Type: application/json',
+                    ],
+                    CURLOPT_POSTFIELDS => json_encode($chunk),
+                    CURLOPT_TIMEOUT => 4,
+                ]);
+                curl_exec($ch);
+                curl_close($ch);
+            }
+
+            return count($messages);
+        } catch (\Throwable $e) {
+            error_log('Expo Push Error: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    public static function svg(string $name, int $size = 18, string $class = ''): string
+    {
+        $classAttr = $class ? " {$class}" : '';
+        return match ($name) {
+            'overview' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>',
+            'users' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+            'user' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+            'bell' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
+            'send' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
+            'credit-card' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>',
+            'database' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>',
+            'logout' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+            'menu' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>',
+            'shield-check' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>',
+            'lock' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+            'pulse' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+            'wallet' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M16 12h.01"/><path d="M2 10h20"/></svg>',
+            'link' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+            'phone' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+            'trash' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+            'history' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+            'check' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="code-icon' . $classAttr . '"><polyline points="20 6 9 17 4 12"/></svg>',
+            'spinner' => '<svg width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="spin-loader' . $classAttr . '"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-linecap="round"/></svg>',
+            default => '',
+        };
     }
 
     private function handleDeleteNotification(array $input): void
@@ -430,6 +552,19 @@ class AdminDashboard
             padding-top: 18px;
             border-top: 1px solid #F1F5F9;
         }
+        .code-icon {
+            display: inline-block;
+            vertical-align: middle;
+            flex-shrink: 0;
+        }
+        .spin-loader {
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -458,7 +593,7 @@ class AdminDashboard
 
             <button type="submit" id="loginBtn" class="btn-submit">
                 <span>Sign In with 2FA</span>
-                <span id="loginSpinner" style="display:none;">⏳</span>
+                <span id="loginSpinner" style="display:none;"><?= self::svg('spinner', 16) ?></span>
             </button>
         </form>
 
@@ -475,7 +610,7 @@ class AdminDashboard
 
             <button type="submit" id="otpBtn" class="btn-submit">
                 <span>Verify & Access Dashboard</span>
-                <span id="otpSpinner" style="display:none;">⏳</span>
+                <span id="otpSpinner" style="display:none;"><?= self::svg('spinner', 16) ?></span>
             </button>
 
             <div style="text-align:center; margin-top:14px;">
@@ -484,7 +619,7 @@ class AdminDashboard
         </form>
 
         <div class="security-badge">
-            <span>🔒 Protected by Two-Factor Authentication (OTP)</span>
+            <span style="display:inline-flex; align-items:center; gap:6px;"><?= self::svg('shield-check', 15) ?> Protected by Two-Factor Authentication (OTP)</span>
         </div>
     </div>
 
@@ -997,16 +1132,48 @@ class AdminDashboard
         .status-badge {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 11px;
+            gap: 6px;
+            padding: 3px 9px;
+            border-radius: 9999px;
+            font-size: 11.5px;
             font-weight: 700;
             white-space: nowrap;
         }
         .badge-online { background: #DCFCE7; color: #166534; }
         .badge-active-today { background: #FEF3C7; color: #92400E; }
         .badge-offline { background: #F1F5F9; color: #64748B; }
+
+        .presence-indicator {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .presence-indicator.online {
+            background: #16A36A;
+            box-shadow: 0 0 0 2px rgba(22, 163, 106, 0.25);
+        }
+        .presence-indicator.today {
+            background: #D97706;
+        }
+        .presence-indicator.offline {
+            background: #94A3B8;
+        }
+
+        .code-icon {
+            display: inline-block;
+            vertical-align: middle;
+            flex-shrink: 0;
+        }
+        .spin-loader {
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
 
         .plan-badge {
             background: #EFF6FF;
@@ -1080,38 +1247,38 @@ class AdminDashboard
         <ul class="sidebar-menu">
             <li>
                 <a class="menu-item active" onclick="switchTab('overview')">
-                    <span class="menu-icon">📊</span>
+                    <span class="menu-icon"><?= self::svg('overview', 18) ?></span>
                     <span class="menu-label">Overview</span>
                 </a>
             </li>
             <li>
                 <a class="menu-item" onclick="switchTab('users')">
-                    <span class="menu-icon">👥</span>
+                    <span class="menu-icon"><?= self::svg('users', 18) ?></span>
                     <span class="menu-label">Cloud Users (<?= count($users) ?>)</span>
                 </a>
             </li>
             <li>
                 <a class="menu-item" onclick="switchTab('notifications')">
-                    <span class="menu-icon">📢</span>
+                    <span class="menu-icon"><?= self::svg('bell', 18) ?></span>
                     <span class="menu-label">In-App Notifications</span>
                 </a>
             </li>
             <li>
                 <a class="menu-item" onclick="switchTab('momo')">
-                    <span class="menu-icon">💳</span>
+                    <span class="menu-icon"><?= self::svg('credit-card', 18) ?></span>
                     <span class="menu-label">MoMo Transactions</span>
                 </a>
             </li>
             <li>
                 <a class="menu-item" onclick="switchTab('backups')">
-                    <span class="menu-icon">💾</span>
+                    <span class="menu-icon"><?= self::svg('database', 18) ?></span>
                     <span class="menu-label">Cloud Backups</span>
                 </a>
             </li>
         </ul>
 
         <div class="sidebar-footer">
-            <div class="sidebar-footer-avatar">A</div>
+            <div class="sidebar-footer-avatar"><?= self::svg('user', 18) ?></div>
             <div class="sidebar-footer-info">
                 <div class="sidebar-footer-name"><?= htmlspecialchars($_SESSION['admin_name'] ?? 'Super Admin') ?></div>
                 <div class="sidebar-footer-role"><?= htmlspecialchars($_SESSION['admin_email'] ?? 'axtechnologiesug@gmail.com') ?></div>
@@ -1123,7 +1290,7 @@ class AdminDashboard
     <div id="main">
         <div class="top-header">
             <div class="header-left">
-                <button class="toggle-btn" onclick="toggleSidebar()" title="Toggle Sidebar">☰</button>
+                <button class="toggle-btn" onclick="toggleSidebar()" title="Toggle Sidebar"><?= self::svg('menu', 18) ?></button>
                 <div class="page-heading" id="pageTitle">Admin Dashboard &bull; TradeDesk Mobile</div>
             </div>
             <div class="header-right">
@@ -1131,7 +1298,7 @@ class AdminDashboard
                     <span class="live-dot"></span>
                     <span><?= $onlineNow ?> User<?= $onlineNow === 1 ? '' : 's' ?> Online Now</span>
                 </div>
-                <a href="<?= $baseUrl ?>admin/auth/logout" class="btn-logout">Sign Out</a>
+                <a href="<?= $baseUrl ?>admin/auth/logout" class="btn-logout" style="display:inline-flex; align-items:center; gap:6px;"><?= self::svg('logout', 14) ?> Sign Out</a>
             </div>
         </div>
 
@@ -1140,7 +1307,7 @@ class AdminDashboard
             <div id="tab-overview" class="tab-content active">
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-icon" style="background:#EFF6FF; color:#0B4FB8;">👥</div>
+                        <div class="stat-icon" style="background:#EFF6FF; color:#0B4FB8;"><?= self::svg('users', 22) ?></div>
                         <div class="stat-info">
                             <div class="stat-label">Cloud Users</div>
                             <div class="stat-value"><?= number_format($totalUsers) ?></div>
@@ -1149,7 +1316,7 @@ class AdminDashboard
                     </div>
 
                     <div class="stat-card">
-                        <div class="stat-icon" style="background:#DCFCE7; color:#16A36A;">🟢</div>
+                        <div class="stat-icon" style="background:#DCFCE7; color:#16A36A;"><?= self::svg('pulse', 22) ?></div>
                         <div class="stat-info">
                             <div class="stat-label">Online Active Now</div>
                             <div class="stat-value"><?= number_format($onlineNow) ?></div>
@@ -1158,7 +1325,7 @@ class AdminDashboard
                     </div>
 
                     <div class="stat-card">
-                        <div class="stat-icon" style="background:#FEF3C7; color:#D97706;">💰</div>
+                        <div class="stat-icon" style="background:#FEF3C7; color:#D97706;"><?= self::svg('wallet', 22) ?></div>
                         <div class="stat-info">
                             <div class="stat-label">Total Store Balances</div>
                             <div class="stat-value">UGX <?= number_format($totalWalletBal) ?></div>
@@ -1167,7 +1334,7 @@ class AdminDashboard
                     </div>
 
                     <div class="stat-card">
-                        <div class="stat-icon" style="background:#F3E8FF; color:#7E22CE;">💾</div>
+                        <div class="stat-icon" style="background:#F3E8FF; color:#7E22CE;"><?= self::svg('database', 22) ?></div>
                         <div class="stat-info">
                             <div class="stat-label">Cloud Snapshots</div>
                             <div class="stat-value"><?= number_format($totalBackups) ?></div>
@@ -1179,7 +1346,7 @@ class AdminDashboard
                 <!-- Recent Registered Users Table -->
                 <div class="card-panel">
                     <div class="panel-header">
-                        <div class="panel-title">👥 Recently Active Cloud Users</div>
+                        <div class="panel-title"><?= self::svg('users', 18) ?> Recently Active Cloud Users</div>
                         <button class="btn-primary" onclick="switchTab('users')" style="padding: 6px 14px; font-size: 12px;">View All Users &rarr;</button>
                     </div>
                     <div class="table-responsive">
@@ -1206,11 +1373,11 @@ class AdminDashboard
                                 <tr>
                                     <td>
                                         <?php if ($isOnline): ?>
-                                            <span class="status-badge badge-online">🟢 Online Now</span>
+                                            <span class="status-badge badge-online"><span class="presence-indicator online"></span>Online Now</span>
                                         <?php elseif ($isActiveToday): ?>
-                                            <span class="status-badge badge-active-today">🟡 Active Today</span>
+                                            <span class="status-badge badge-active-today"><span class="presence-indicator today"></span>Active Today</span>
                                         <?php else: ?>
-                                            <span class="status-badge badge-offline">⚪ Offline</span>
+                                            <span class="status-badge badge-offline"><span class="presence-indicator offline"></span>Offline</span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
@@ -1228,7 +1395,7 @@ class AdminDashboard
                                         <?= $u['last_seen_at'] ? date('M j, g:i a', strtotime($u['last_seen_at'])) : 'Never' ?>
                                     </td>
                                     <td>
-                                        <button class="btn-primary" style="padding:4px 8px; font-size:11px;" onclick="openQuickNotification(<?= $u['id'] ?>, '<?= htmlspecialchars(addslashes($u['name'])) ?>')">📢 Notify</button>
+                                        <button class="btn-primary" style="padding:4px 8px; font-size:11px;" onclick="openQuickNotification(<?= $u['id'] ?>, '<?= htmlspecialchars(addslashes($u['name'])) ?>')"><?= self::svg('bell', 12) ?> Notify</button>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -1242,7 +1409,7 @@ class AdminDashboard
             <div id="tab-users" class="tab-content">
                 <div class="card-panel">
                     <div class="panel-header">
-                        <div class="panel-title">👥 All Cloud Registered Users (<?= count($users) ?>)</div>
+                        <div class="panel-title"><?= self::svg('users', 18) ?> All Cloud Registered Users (<?= count($users) ?>)</div>
                         <input type="text" id="userSearch" class="search-box" placeholder="Search name, email, shop..." onkeyup="filterUsersTable()">
                     </div>
                     <div class="table-responsive">
@@ -1272,11 +1439,11 @@ class AdminDashboard
                                 <tr>
                                     <td>
                                         <?php if ($isOnline): ?>
-                                            <span class="status-badge badge-online">🟢 Online Now</span>
+                                            <span class="status-badge badge-online"><span class="presence-indicator online"></span>Online Now</span>
                                         <?php elseif ($isActiveToday): ?>
-                                            <span class="status-badge badge-active-today">🟡 Today (<?= floor($diff/60) ?>m ago)</span>
+                                            <span class="status-badge badge-active-today"><span class="presence-indicator today"></span>Today (<?= floor($diff/60) ?>m ago)</span>
                                         <?php else: ?>
-                                            <span class="status-badge badge-offline">⚪ <?= $lastSeen ? date('M j, g:i a', $lastSeen) : 'Never' ?></span>
+                                            <span class="status-badge badge-offline"><span class="presence-indicator offline"></span><?= $lastSeen ? date('M j, g:i a', $lastSeen) : 'Never' ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td><strong><?= htmlspecialchars($u['name']) ?></strong></td>
@@ -1290,13 +1457,13 @@ class AdminDashboard
                                     <td style="font-weight:800; color:#0B4FB8;">UGX <?= number_format((float) ($u['wallet_balance'] ?? 0)) ?></td>
                                     <td>
                                         <span title="<?= htmlspecialchars($u['last_backup_stats'] ?? '') ?>">
-                                            💾 <?= (int) $u['backup_count'] ?> snapshots
+                                            <?= self::svg('database', 13) ?> <?= (int) $u['backup_count'] ?> snapshots
                                         </span>
                                     </td>
                                     <td style="font-size:11.5px; color:#64748B;"><?= date('M j, Y', strtotime($u['registered_at'])) ?></td>
                                     <td style="font-size:11px; color:#94A3B8;"><?= htmlspecialchars($u['last_ip'] ?: '-') ?></td>
                                     <td>
-                                        <button class="btn-primary" style="padding:4px 8px; font-size:11px;" onclick="openQuickNotification(<?= $u['id'] ?>, '<?= htmlspecialchars(addslashes($u['name'])) ?>')">📢 Notify</button>
+                                        <button class="btn-primary" style="padding:4px 8px; font-size:11px;" onclick="openQuickNotification(<?= $u['id'] ?>, '<?= htmlspecialchars(addslashes($u['name'])) ?>')"><?= self::svg('bell', 12) ?> Notify</button>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -1311,7 +1478,7 @@ class AdminDashboard
                 <!-- Composer Form -->
                 <div class="card-panel">
                     <div class="panel-header">
-                        <div class="panel-title">📢 Send In-App Notification (Auto-Pulled when User Connects to Internet)</div>
+                        <div class="panel-title"><?= self::svg('bell', 18) ?> Send Notification (Popup Alert on Phone & Cloud In-App)</div>
                     </div>
                     <form id="notifForm" onsubmit="sendNotificationSubmit(event)">
                         <div class="composer-grid">
@@ -1319,9 +1486,9 @@ class AdminDashboard
                                 <div class="form-field">
                                     <label class="field-label">Target Recipient</label>
                                     <select id="notifTarget" class="field-select">
-                                        <option value="all">📢 Broadcast to ALL Cloud Users (<?= count($users) ?> users)</option>
+                                        <option value="all">Broadcast to ALL Cloud Users (<?= count($users) ?> users)</option>
                                         <?php foreach ($users as $u): ?>
-                                            <option value="<?= $u['id'] ?>">👤 <?= htmlspecialchars($u['name']) ?> (<?= htmlspecialchars($u['shop_name'] ?: $u['email']) ?>)</option>
+                                            <option value="<?= $u['id'] ?>"><?= htmlspecialchars($u['name']) ?> (<?= htmlspecialchars($u['shop_name'] ?: $u['email']) ?>)</option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
@@ -1329,10 +1496,10 @@ class AdminDashboard
                                 <div class="form-field">
                                     <label class="field-label">Notification Type</label>
                                     <select id="notifType" class="field-select">
-                                        <option value="ALERT">⚠️ Store Alert (Important Updates)</option>
-                                        <option value="SALE">🛍️ Sale / Product Offer</option>
-                                        <option value="PAYMENT">💳 Payment / Mobile Money Notice</option>
-                                        <option value="SYNC">☁️ Cloud Backup & Sync</option>
+                                        <option value="ALERT">Store Alert (Important Updates)</option>
+                                        <option value="SALE">Sale / Product Offer</option>
+                                        <option value="PAYMENT">Payment / Mobile Money Notice</option>
+                                        <option value="SYNC">Cloud Backup & Sync</option>
                                     </select>
                                 </div>
 
@@ -1364,7 +1531,7 @@ class AdminDashboard
 
                         <div style="padding: 0 20px 20px 20px; display:flex; justify-content:flex-end;">
                             <button type="submit" id="sendNotifBtn" class="btn-primary">
-                                <span>🚀 Dispatch In-App Notification</span>
+                                <span style="display:inline-flex; align-items:center; gap:6px;"><?= self::svg('send', 16) ?> Dispatch Notification (Popup & In-App)</span>
                             </button>
                         </div>
                     </form>
@@ -1373,7 +1540,7 @@ class AdminDashboard
                 <!-- Sent Notifications Log -->
                 <div class="card-panel">
                     <div class="panel-header">
-                        <div class="panel-title">📜 Dispatched Notifications History (<?= count($notifications) ?>)</div>
+                        <div class="panel-title"><?= self::svg('history', 18) ?> Dispatched Notifications History (<?= count($notifications) ?>)</div>
                     </div>
                     <div class="table-responsive">
                         <table>
@@ -1400,10 +1567,10 @@ class AdminDashboard
                                         <td style="max-width:300px; font-size:12.5px;"><?= htmlspecialchars($n['message']) ?></td>
                                         <td style="font-size:12px;">
                                             <?php if ($n['action_link']): ?>
-                                                <div>🌐 <a href="<?= htmlspecialchars($n['action_link']) ?>" target="_blank" style="color:#0B4FB8;"><?= htmlspecialchars(substr($n['action_link'], 0, 30)) ?>...</a></div>
+                                                <div style="display:flex; align-items:center; gap:4px;"><?= self::svg('link', 13) ?> <a href="<?= htmlspecialchars($n['action_link']) ?>" target="_blank" style="color:#0B4FB8;"><?= htmlspecialchars(substr($n['action_link'], 0, 30)) ?>...</a></div>
                                             <?php endif; ?>
                                             <?php if ($n['action_phone']): ?>
-                                                <div>📞 <?= htmlspecialchars($n['action_phone']) ?></div>
+                                                <div style="display:flex; align-items:center; gap:4px;"><?= self::svg('phone', 13) ?> <?= htmlspecialchars($n['action_phone']) ?></div>
                                             <?php endif; ?>
                                             <?php if (!$n['action_link'] && !$n['action_phone']): ?>
                                                 <span style="color:#94A3B8;">None</span>
@@ -1411,11 +1578,11 @@ class AdminDashboard
                                         </td>
                                         <td>
                                             <span class="status-badge badge-online">
-                                                ✓ <?= (int) $n['delivery_count'] ?> delivered
+                                                <?= self::svg('check', 13) ?> <?= (int) $n['delivery_count'] ?> delivered
                                             </span>
                                         </td>
                                         <td>
-                                            <button class="btn-sm-danger" onclick="deleteNotification(<?= $n['id'] ?>)">Delete</button>
+                                            <button class="btn-sm-danger" onclick="deleteNotification(<?= $n['id'] ?>)" style="display:inline-flex; align-items:center; gap:4px;"><?= self::svg('trash', 12) ?> Delete</button>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
@@ -1430,7 +1597,7 @@ class AdminDashboard
             <div id="tab-momo" class="tab-content">
                 <div class="card-panel">
                     <div class="panel-header">
-                        <div class="panel-title">💳 Live Mobile Money Collections & Disbursements (<?= count($momoTx) ?>)</div>
+                        <div class="panel-title"><?= self::svg('credit-card', 18) ?> Live Mobile Money Collections & Disbursements (<?= count($momoTx) ?>)</div>
                     </div>
                     <div class="table-responsive">
                         <table>
@@ -1483,7 +1650,7 @@ class AdminDashboard
             <div id="tab-backups" class="tab-content">
                 <div class="card-panel">
                     <div class="panel-header">
-                        <div class="panel-title">💾 Cloud Data Snapshots & Sync Status</div>
+                        <div class="panel-title"><?= self::svg('database', 18) ?> Cloud Data Snapshots & Sync Status</div>
                     </div>
                     <div class="table-responsive">
                         <table>
@@ -1590,9 +1757,10 @@ class AdminDashboard
                 return;
             }
 
+            const origHtml = btn.innerHTML;
             try {
                 btn.disabled = true;
-                btn.innerText = 'Dispatching...';
+                btn.innerHTML = '<span>Dispatching...</span>';
 
                 const res = await fetch(baseUrl + 'admin/api/send-notification', {
                     method: 'POST',
@@ -1605,13 +1773,13 @@ class AdminDashboard
                     throw new Error(data.message || 'Failed to dispatch notification.');
                 }
 
-                alert('Notification successfully dispatched! Users will receive it in-app automatically upon connecting to the internet.');
+                alert(data.message || 'Notification successfully dispatched!');
                 location.reload();
             } catch (err) {
                 alert(err.message || 'Error sending notification.');
             } finally {
                 btn.disabled = false;
-                btn.innerText = '🚀 Dispatch In-App Notification';
+                btn.innerHTML = origHtml;
             }
         }
 

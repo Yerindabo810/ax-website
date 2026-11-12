@@ -195,6 +195,13 @@ class Database
                 $pdo->exec("ALTER TABLE `mobile_users` ADD COLUMN `last_ip` VARCHAR(50) DEFAULT NULL");
             } catch (\Throwable $e) {}
         }
+        $cols4 = $pdo->query("SHOW COLUMNS FROM `mobile_users` LIKE 'push_token'")->fetchAll();
+        if (empty($cols4)) {
+            try {
+                $pdo->exec("ALTER TABLE `mobile_users` ADD COLUMN `push_token` VARCHAR(255) DEFAULT NULL");
+                $pdo->exec("ALTER TABLE `mobile_users` ADD COLUMN `push_platform` VARCHAR(30) DEFAULT NULL");
+            } catch (\Throwable $e) {}
+        }
 
         // Seed Super Admin: axtechnologiesug@gmail.com / Anthony256#
         try {
