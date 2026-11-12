@@ -347,13 +347,54 @@ class MarzPayService
                     $up->execute([$targetUuid]);
                 }
 
-                return [
-                    'success' => true,
-                    'status' => $status,
-                    'is_completed' => $isCompleted,
-                    'is_failed' => $isFailed,
-                    'raw' => $data,
-                ];
+                if ($isCompleted || $isFailed) {
+                    return [
+                        'success' => true,
+                        'status' => $status,
+                        'is_completed' => $isCompleted,
+                        'is_failed' => $isFailed,
+                        'raw' => $data,
+                    ];
+                }
+            }
+        }
+
+        // 3. Fallback: Query /transactions?reference=... (Identical to TradeDesk Web POS detection)
+        $queryRef = $merchantRef ?: ($row['customer_reference'] ?? ($row['gateway_reference'] ?? $targetUuid));
+        if ($queryRef) {
+            $qRes = $this->httpRequest('GET', '/transactions', [
+                'reference' => $queryRef,
+                'per_page' => 1,
+            ], false, 15);
+
+            if ($qRes['ok']) {
+                $qData = $qRes['json'];
+                $firstTx = $qData['data'][0] ?? null;
+                if ($firstTx) {
+                    $st = strtolower($firstTx['status'] ?? 'pending');
+                    $isCompleted = in_array($st, ['completed', 'successful', 'success'], true);
+                    $isFailed = in_array($st, ['failed', 'cancelled', 'rejected'], true);
+
+                    if ($isCompleted) {
+                        if ($row && empty($row['credited'])) {
+                            $this->creditBusinessWallet((int) $row['business_id'], (float) $row['amount'], (string) $row['internal_reference'], (string) ($row['provider'] ?? 'MOMO'));
+                        } elseif ($row) {
+                            $up = $this->pdo->prepare("UPDATE mobile_momo_transactions SET status = 'completed' WHERE id = ?");
+                            $up->execute([$row['id']]);
+                        }
+                    } elseif ($isFailed && $row) {
+                        $up = $this->pdo->prepare("UPDATE mobile_momo_transactions SET status = 'failed' WHERE id = ?");
+                        $up->execute([$row['id']]);
+                    }
+
+                    return [
+                        'success' => true,
+                        'status' => $st,
+                        'is_completed' => $isCompleted,
+                        'is_failed' => $isFailed,
+                        'raw' => $qData,
+                    ];
+                }
             }
         }
 
