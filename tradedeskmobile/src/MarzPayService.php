@@ -319,14 +319,21 @@ class MarzPayService
         }
 
         // 2. Query MarzPay Gateway if not yet completed locally
-        if (preg_match($uuidPattern, $targetUuid)) {
-            $res = $this->httpRequest('GET', "/collect-money/{$targetUuid}", null, false, 15);
+        $uuidToQuery = preg_match($uuidPattern, $targetUuid) ? $targetUuid : ($row['gateway_reference'] ?? $targetUuid);
+        if (preg_match($uuidPattern, $uuidToQuery)) {
+            $res = $this->httpRequest('GET', "/collect-money/{$uuidToQuery}", null, false, 15);
             if ($res['ok']) {
                 $data = $res['json'];
-                $tx = $data['data']['transaction'] ?? $data['data'] ?? [];
-                $status = strtolower($tx['status'] ?? 'pending');
-                $isCompleted = in_array($status, ['completed', 'successful', 'success'], true);
-                $isFailed = in_array($status, ['failed', 'cancelled'], true);
+                $coll = $data['data']['collection'] ?? [];
+                $tx = $data['data']['transaction'] ?? [];
+                $root = $data['data'] ?? [];
+
+                $status = strtolower($tx['status'] ?? ($coll['status'] ?? ($root['status'] ?? ($data['status'] ?? 'pending'))));
+                $isCompleted = in_array($status, ['completed', 'successful', 'success'], true) ||
+                    strtolower($coll['status'] ?? '') === 'completed' ||
+                    strtolower($tx['status'] ?? '') === 'completed';
+                $isFailed = in_array($status, ['failed', 'cancelled', 'rejected'], true) ||
+                    in_array(strtolower($coll['status'] ?? ''), ['failed', 'cancelled', 'rejected'], true);
 
                 if ($isCompleted) {
                     if ($row && empty($row['credited'])) {

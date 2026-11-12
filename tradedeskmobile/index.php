@@ -1479,15 +1479,15 @@ try {
     if (($route === 'pos/momo/webhook' || $route === 'webhooks/marzpay') && $method === 'POST') {
         $data = isset($input['data']) && is_array($input['data']) ? $input['data'] : $input;
         $eventType = $input['event_type'] ?? ($data['event_type'] ?? '');
-        $transaction = $data['transaction'] ?? [];
-        $status = strtolower($transaction['status'] ?? '');
+        $transaction = $data['transaction'] ?? ($data['collection'] ?? $data);
+        $status = strtolower($transaction['status'] ?? ($data['status'] ?? ''));
         $isCompleted = ($eventType === 'collection.completed') || in_array($status, ['completed', 'successful', 'success'], true);
 
         if ($isCompleted) {
-            $uuid = $transaction['uuid'] ?? ($transaction['reference'] ?? '');
+            $uuid = $transaction['uuid'] ?? ($transaction['reference'] ?? ($data['reference'] ?? ($data['uuid'] ?? ($input['reference'] ?? ''))));
             if ($uuid !== '') {
-                $stmt = $pdo->prepare("SELECT * FROM mobile_momo_transactions WHERE internal_reference = ? OR gateway_reference = ? LIMIT 1");
-                $stmt->execute([$uuid, $uuid]);
+                $stmt = $pdo->prepare("SELECT * FROM mobile_momo_transactions WHERE internal_reference = ? OR gateway_reference = ? OR customer_reference = ? LIMIT 1");
+                $stmt->execute([$uuid, $uuid, $uuid]);
                 $tx = $stmt->fetch();
                 if ($tx) {
                     $marzpay->creditBusinessWallet((int) $tx['business_id'], (float) $tx['amount'], (string) $tx['internal_reference'], (string) $tx['provider']);
