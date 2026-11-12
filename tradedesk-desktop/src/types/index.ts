@@ -46,7 +46,7 @@ export interface BusinessProfile {
   cloud_user_json?: string | null;
   cloud_business_json?: string | null;
   cloud_api_url?: string | null;
-  last_synced_at: string | null;
+  last_synced_at?: string | null;
   onboarded: number;
   trial_started_at?: string | null;
   trial_ends_at?: string | null;
@@ -86,6 +86,10 @@ export interface Product {
   cost_price: number;
   selling_price: number;
   wholesale_price: number;
+  current_stock?: number;
+  min_stock_alert?: number;
+  is_active?: number;
+  created_at?: string;
   pack_name?: string;
   pack_size?: number;
   pack_price?: number;
@@ -127,6 +131,7 @@ export interface Customer {
   address: string;
   notes: string;
   total_debt: number;
+  total_credit_balance?: number;
   total_spent: number;
   last_purchase_at: string | null;
   is_deleted: number;
@@ -343,6 +348,7 @@ export interface DailyChartPoint {
 export interface DashboardSummary {
   todaySales: number;
   todaySalesCount: number;
+  todayTransactions?: number;
   todayGrossProfit: number;
   todayExpenses: number;
   todayNetProfit: number;
@@ -356,6 +362,7 @@ export interface DashboardSummary {
   totalStockRetailValue: number;
   totalProducts: number;
   lowStockCount: number;
+  totalReceivables?: number;
   outOfStockCount: number;
   expiringSoonCount: number;
   expiredCount: number;

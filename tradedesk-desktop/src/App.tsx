@@ -215,8 +215,8 @@ export default function App() {
                       >
                         <div style={styles.productCardTop}>
                           <span style={styles.productSku}>{p.sku}</span>
-                          <span style={styles.stockBadge(p.current_stock <= (p.min_stock_alert || 5))}>
-                            {p.current_stock} {p.unit}
+                          <span style={styles.stockBadge(Number(p.current_stock ?? 0) <= Number(p.min_stock_alert || 5))}>
+                            {p.current_stock ?? 0} {p.unit}
                           </span>
                         </div>
                         <div style={styles.productName}>{p.name}</div>
@@ -297,7 +297,7 @@ export default function App() {
 
                   <div style={styles.payButtonsGrid}>
                     <button
-                      style={[styles.payActionBtn, { background: '#16A34A', color: '#FFF' }]}
+                      style={{ ...styles.payActionBtn, background: '#16A34A', color: '#FFF' }}
                       disabled={cart.length === 0}
                       onClick={() => {
                         setPaymentType('CASH');
@@ -308,7 +308,7 @@ export default function App() {
                       <span>Cash Checkout (F5)</span>
                     </button>
                     <button
-                      style={[styles.payActionBtn, { background: '#0B4FB8', color: '#FFF' }]}
+                      style={{ ...styles.payActionBtn, background: '#0B4FB8', color: '#FFF' }}
                       disabled={cart.length === 0}
                       onClick={() => {
                         setPaymentType('MTN_MOMO');
@@ -961,3 +961,4 @@ const styles: Record<string, any> = {
     gap: 6,
   },
 };
+

@@ -1,5 +1,9 @@
 import { CloudBusiness, CloudUser } from '../types';
-import { getBusinessProfile } from '../db/database';
+
+let cachedProfileToken: string | null = null;
+export function setCachedProfileToken(tok: string | null) {
+  cachedProfileToken = tok;
+}
 
 export const DEFAULT_CLOUD_API_URL = 'https://axtechnologies.net/tradedeskmobile/api';
 export const FALLBACK_CLOUD_API_URL = 'https://www.axtechnologies.net/tradedeskmobile/api';
@@ -31,14 +35,9 @@ async function apiRequest<T = any>(
   } = {}
 ): Promise<T> {
   let effectiveToken = options.token !== undefined ? options.token : activeAuthToken;
-  if (!effectiveToken) {
-    try {
-      const prof = getBusinessProfile();
-      if (prof?.cloud_token) {
-        effectiveToken = prof.cloud_token;
-        activeAuthToken = prof.cloud_token;
-      }
-    } catch {}
+  if (!effectiveToken && cachedProfileToken) {
+    effectiveToken = cachedProfileToken;
+    activeAuthToken = cachedProfileToken;
   }
   const { method = 'GET', body, params, timeoutMs = 15000 } = options;
   const token = effectiveToken;
