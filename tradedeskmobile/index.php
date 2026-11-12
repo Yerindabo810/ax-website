@@ -1407,13 +1407,14 @@ try {
             if ($amount < 5000) {
                 jsonResponse(['status' => 'error', 'message' => 'Minimum withdrawal amount is UGX 5,000.'], 422);
             }
-            $charge = 660.0;
-            $totalRequired = $amount + $charge;
+            $feeQuote = $marzpay->calculateWithdrawalFee($amount);
+            $charge = $feeQuote['total_fee'];
+            $totalRequired = $feeQuote['total_deduction'];
             $currentBal = (float) ($biz['wallet_balance'] ?? 0);
             if ($currentBal < $totalRequired) {
                 jsonResponse([
                     'status' => 'error',
-                    'message' => 'Insufficient funds: Your Mobile Money wallet balance is UGX ' . number_format($currentBal) . ', but UGX ' . number_format($totalRequired) . ' is required (UGX ' . number_format($amount) . ' withdrawal + UGX 660 fee).',
+                    'message' => 'Insufficient funds: Your Mobile Money wallet balance is UGX ' . number_format($currentBal) . ', but UGX ' . number_format($totalRequired) . ' is required (UGX ' . number_format($amount) . ' withdrawal + UGX ' . number_format($charge) . ' total fee [MarzPay 3%: UGX ' . number_format($feeQuote['marzpay_fee']) . ' + Platform 2%: UGX ' . number_format($feeQuote['platform_fee']) . ']).',
                 ], 422);
             }
         } else {
@@ -1422,7 +1423,15 @@ try {
 
         $formattedAmt = 'UGX ' . number_format($amount);
         $shopName = $biz['name'] ?? 'TradeDesk Mobile Shop';
-        $feeText = $actionType === 'withdrawal' ? "<div style='font-size: 13px; color: #dc2626; margin-top: 4px;'>Withdrawal Fee: <strong>UGX 660</strong> (Total account deduction: <strong>UGX " . number_format($amount + 660) . "</strong>)</div>" : "";
+        $feeQuote = $actionType === 'withdrawal' ? $marzpay->calculateWithdrawalFee($amount) : null;
+        $feeText = $actionType === 'withdrawal' && $feeQuote
+            ? "<div style='font-size: 13px; color: #dc2626; margin-top: 6px; background: #fff1f2; padding: 10px; border-radius: 6px; border: 1px solid #fecdd3;'>
+                <div>Withdrawal Amount: <strong>UGX " . number_format($amount) . "</strong></div>
+                <div>MarzPay Network Charge (3%): <strong>UGX " . number_format($feeQuote['marzpay_fee']) . "</strong></div>
+                <div>Platform Processing Fee (2% retained on account): <strong>UGX " . number_format($feeQuote['platform_fee']) . "</strong></div>
+                <div style='margin-top: 4px; font-weight: 800; color: #9f1239; border-top: 1px dashed #f43f5e; padding-top: 4px;'>Total Account Deduction: <strong>UGX " . number_format($feeQuote['total_deduction']) . "</strong></div>
+               </div>"
+            : "";
         $html = "
         <div style='font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;'>
             <h2 style='color: #0b4fb8; margin: 0; text-align: center;'>Trade<span style='color: #f26a0e;'>Desk</span> Mobile</h2>
@@ -1449,6 +1458,16 @@ try {
         ]);
     }
 
+    // GET /pos/momo/withdrawal-quote
+    if ($route === 'pos/momo/withdrawal-quote' && $method === 'GET') {
+        $amount = (float) ($_GET['amount'] ?? 0);
+        $quote = $marzpay->calculateWithdrawalFee($amount);
+        jsonResponse([
+            'status' => 'success',
+            'data' => $quote,
+        ]);
+    }
+
     // POST /pos/momo/withdraw
     if ($route === 'pos/momo/withdraw' && $method === 'POST') {
         $businessId = (int) ($input['business_id'] ?? 1);
@@ -1456,8 +1475,6 @@ try {
         $phone = trim((string) ($input['phone_number'] ?? ''));
         $otp = trim((string) ($input['otp'] ?? ''));
         $notes = trim((string) ($input['notes'] ?? 'TradeDesk Mobile Owner Withdrawal'));
-        $charge = 660.0;
-        $totalRequired = $amount + $charge;
 
         if ($amount < 5000) {
             jsonResponse(['status' => 'error', 'message' => 'Minimum withdrawal amount is UGX 5,000.'], 422);
@@ -1467,6 +1484,13 @@ try {
             jsonResponse(['status' => 'error', 'message' => 'Valid recipient phone number is required.'], 422);
         }
 
+        // Calculate dynamic withdrawal fees: 3% MarzPay + 2% platform margin (retained on account)
+        $fees = $marzpay->calculateWithdrawalFee($amount);
+        $charge = $fees['total_fee'];
+        $totalRequired = $fees['total_deduction'];
+        $marzpayFee = $fees['marzpay_fee'];
+        $platformFee = $fees['platform_fee'];
+
         // Check wallet balance
         $bStmt = $pdo->prepare("SELECT wallet_balance FROM mobile_businesses WHERE id = ?");
         $bStmt->execute([$businessId]);
@@ -1475,7 +1499,7 @@ try {
         if ($currentBal < $totalRequired) {
             jsonResponse([
                 'status' => 'error',
-                'message' => 'Insufficient funds: Your Mobile Money wallet balance is UGX ' . number_format($currentBal) . ', but UGX ' . number_format($totalRequired) . ' is required (UGX ' . number_format($amount) . ' withdrawal + UGX 660 fee).',
+                'message' => 'Insufficient funds: Your Mobile Money wallet balance is UGX ' . number_format($currentBal) . ', but UGX ' . number_format($totalRequired) . ' is required (UGX ' . number_format($amount) . ' withdrawal + UGX ' . number_format($charge) . ' fee [MarzPay 3%: UGX ' . number_format($marzpayFee) . ' + Platform 2%: UGX ' . number_format($platformFee) . ']).',
             ], 422);
         }
 
@@ -1490,11 +1514,19 @@ try {
             ], 422);
         }
 
-        // Deduct withdrawal amount + 660 fee from wallet
+        // Deduct withdrawal amount + total fee from wallet
         $pdo->prepare("UPDATE mobile_businesses SET wallet_balance = GREATEST(0, wallet_balance - ?) WHERE id = ?")
             ->execute([$totalRequired, $businessId]);
 
-        // Record in mobile_momo_transactions
+        // Record in mobile_momo_transactions with transparent fee breakdown
+        $feeDescription = sprintf(
+            "%s (Fee: UGX %s [MarzPay 3%%: UGX %s, Platform 2%%: UGX %s])",
+            $notes,
+            number_format($charge),
+            number_format($marzpayFee),
+            number_format($platformFee)
+        );
+
         try {
             $stmt = $pdo->prepare("
                 INSERT INTO mobile_momo_transactions
@@ -1510,7 +1542,7 @@ try {
                 $res['phone_number'] ?? $phone,
                 $amount,
                 $charge,
-                $notes . ' (Withdrawal Fee: UGX 660)',
+                $feeDescription,
             ]);
         } catch (\Exception $e) {}
 
@@ -1519,10 +1551,12 @@ try {
 
         jsonResponse([
             'status' => 'success',
-            'message' => 'UGX ' . number_format($amount) . " withdrawn to {$res['phone_number']} ({$res['provider']})! Fee: UGX 660.",
+            'message' => 'UGX ' . number_format($amount) . " withdrawn to {$res['phone_number']} ({$res['provider']})! Total fee: UGX " . number_format($charge) . ' (MarzPay 3%: UGX ' . number_format($marzpayFee) . ' + Platform 2%: UGX ' . number_format($platformFee) . ').',
             'data' => [
                 'withdrawn_amount' => $amount,
                 'charge' => $charge,
+                'marzpay_fee' => $marzpayFee,
+                'platform_fee' => $platformFee,
                 'total_deducted' => $totalRequired,
                 'phone_number' => $res['phone_number'],
                 'provider' => $res['provider'],

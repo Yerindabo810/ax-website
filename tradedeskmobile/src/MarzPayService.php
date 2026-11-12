@@ -68,6 +68,31 @@ class MarzPayService
         return (float) max(200, ceil(($amount * $percent) / 100));
     }
 
+    /**
+     * Calculate withdrawal charges:
+     * - MarzPay payout gateway charge: default 3.0%
+     * - Platform owner margin: default 2.0% (retained on account)
+     * - Total fee: 5.0%
+     */
+    public function calculateWithdrawalFee(float $amount, float $marzpayPercent = 3.0, float $platformPercent = 2.0): array
+    {
+        $amount = (float) max(0, $amount);
+        $marzpayFee = (float) ceil(($amount * $marzpayPercent) / 100);
+        $platformFee = (float) ceil(($amount * $platformPercent) / 100);
+        $totalFee = (float) ($marzpayFee + $platformFee);
+        $totalDeduction = (float) ($amount + $totalFee);
+
+        return [
+            'amount' => $amount,
+            'marzpay_percent' => $marzpayPercent,
+            'marzpay_fee' => $marzpayFee,
+            'platform_percent' => $platformPercent,
+            'platform_fee' => $platformFee,
+            'total_fee' => $totalFee,
+            'total_deduction' => $totalDeduction,
+        ];
+    }
+
     public static function uuid4(): string
     {
         $data = random_bytes(16);
