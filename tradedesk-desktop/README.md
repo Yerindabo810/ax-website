@@ -10,3 +10,4 @@ A high-velocity, 100% offline-first desktop POS application engineered for whole
   - MTN & Airtel Mobile Money STK Push
   - Value Added Services (Airtime, Internet Data, Yaka Electricity, NWSC Water & Pay-TV)
   - Bi-directional Sales & Inventory Sync (`/sync/push` & `/sync/pull`)
+
