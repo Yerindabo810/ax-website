@@ -310,9 +310,10 @@ JS;
     });
   }
 
-  // Load Cloudflare Turnstile Login & Registration Bot Protection (Exempt SmartSchool)
+  // Load Cloudflare Turnstile Login & Registration Bot Protection (Exempt SmartSchool and TradeDesk)
   var isSmartSchool = (SYSTEM_NAME.indexOf('SmartSchool') !== -1 || window.location.hostname.indexOf('school.') !== -1 || window.location.pathname.indexOf('smartschool') !== -1);
-  if (!isSmartSchool && !window.__axCloudflareProtectLoaded && !window.__axNoTurnstile) {
+  var isTradeDesk = (SYSTEM_NAME.indexOf('TradeDesk') !== -1 || window.location.hostname.indexOf('pos.') !== -1 || window.location.hostname.indexOf('tradedesk') !== -1 || window.location.pathname.indexOf('tradedesk') !== -1);
+  if (!isSmartSchool && !isTradeDesk && !window.__axCloudflareProtectLoaded && !window.__axNoTurnstile) {
     var cfScript = document.createElement('script');
     cfScript.src = BASE_PATH + '/cf-protect.js';
     cfScript.defer = true;

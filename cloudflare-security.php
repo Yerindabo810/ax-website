@@ -163,13 +163,21 @@ function axEnforceCloudflareLoginProtection(array $config = []): void
 
     $host = strtolower($_SERVER['HTTP_HOST'] ?? '');
     $isSmartSchool = str_contains($host, 'school.') || str_contains($lowerPath, 'smartschool') || str_contains($scriptDir, 'smartschool');
+    $isTradeDesk = str_contains($host, 'pos.')
+        || str_contains($host, 'tradedesk')
+        || str_contains($lowerPath, 'tradedesk')
+        || str_contains($scriptDir, 'tradedesk')
+        || in_array(strtolower((string) ($config['systemSlug'] ?? '')), ['tradedeskpos', 'pos', 'tradedesk'], true);
+
+    $isExempt = $isSmartSchool || $isTradeDesk;
 
     // 1. Serve /cf-protect.js for this system
     if ($lowerPath === 'cf-protect.js' || str_ends_with($lowerPath, '/cf-protect.js')) {
         header('Content-Type: application/javascript; charset=utf-8');
         header('Cache-Control: no-cache, must-revalidate');
-        if ($isSmartSchool) {
-            echo "// Turnstile disabled for SmartSchool\n(function(){ document.querySelectorAll('.ax-cf-turnstile-wrap, iframe[src*=\"cloudflare.com\"]').forEach(function(el){ el.remove(); }); })();";
+        if ($isExempt) {
+            $exemptName = $isSmartSchool ? 'SmartSchool' : 'TradeDesk POS';
+            echo "// Turnstile disabled for {$exemptName}\n(function(){ document.querySelectorAll('.ax-cf-turnstile-wrap, iframe[src*=\"cloudflare.com\"], iframe[src*=\"turnstile\"]').forEach(function(el){ el.remove(); }); })();";
             exit;
         }
         echo axBuildCloudflareClientScript(AX_CF_TURNSTILE_SITE_KEY);
@@ -181,8 +189,8 @@ function axEnforceCloudflareLoginProtection(array $config = []): void
         return;
     }
 
-    // Completely disable Turnstile on SmartSchool per user preference (active on all other systems)
-    if ($isSmartSchool) {
+    // Completely disable Turnstile on SmartSchool and TradeDesk per user preference (active on all other systems)
+    if ($isExempt) {
         return;
     }
 
@@ -332,10 +340,14 @@ function axBuildCloudflareClientScript(string $siteKey): string
   if (window.__axCloudflareProtectLoaded) return;
   window.__axCloudflareProtectLoaded = true;
 
-  // Completely disable Turnstile on SmartSchool per user preference
+  // Completely disable Turnstile on SmartSchool and TradeDesk per user preference
   var currentHost = (window.location.hostname || '').toLowerCase();
   var currentPath = (window.location.pathname || '').toLowerCase();
-  if (currentHost.indexOf('school.') !== -1 || currentPath.indexOf('smartschool') !== -1 || window.__axNoTurnstile) {
+  if (
+    currentHost.indexOf('school.') !== -1 || currentPath.indexOf('smartschool') !== -1 ||
+    currentHost.indexOf('pos.') !== -1 || currentHost.indexOf('tradedesk') !== -1 || currentPath.indexOf('tradedesk') !== -1 ||
+    window.__axNoTurnstile
+  ) {
     document.querySelectorAll('.ax-cf-turnstile-wrap, iframe[src*="cloudflare.com"], iframe[src*="turnstile"]').forEach(function (el) { el.remove(); });
     return;
   }
