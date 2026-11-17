@@ -106,23 +106,29 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
       });
 
       const rawStudents = res.students || [];
-      const mapped: Student[] = rawStudents.map((s: any) => ({
-        id: Number(s.id),
-        lin: s.number || s.lin || s.peas_number || s.student_number || `LIN-${s.id}`,
-        peasNumber: s.number || s.peas_number,
-        surname: s.surname || '',
-        lastname: s.lastname || '',
-        fullName: s.name || `${s.surname || ''} ${s.lastname || ''}`.trim() || 'Learner',
-        gender: s.gender || 'M',
-        streamId: s.stream_id ? Number(s.stream_id) : undefined,
-        streamName: s.stream_name || '',
-        classId: selectedClassId,
-        className: activeClassObj?.name || '',
-        currentScore: s.score || s.out80 || '',
-        examsetMarks: s.examset_marks || {},
-        competencyMarks: s.competency_marks || {},
-        paperMarks: s.paper_marks || {},
-      }));
+      const mapped: Student[] = rawStudents.map((s: any, idx: number) => {
+        const safeId = s.id !== undefined && s.id !== null && String(s.id).trim() !== '' && !isNaN(Number(s.id))
+          ? Number(s.id)
+          : (s.id ? String(s.id) : `st-${idx}-${Date.now()}`);
+
+        return {
+          id: safeId,
+          lin: s.number || s.lin || s.peas_number || s.student_number || `LIN-${idx + 1}`,
+          peasNumber: s.number || s.peas_number,
+          surname: s.surname || '',
+          lastname: s.lastname || '',
+          fullName: s.name || `${s.surname || ''} ${s.lastname || ''}`.trim() || `Learner ${idx + 1}`,
+          gender: s.gender || 'M',
+          streamId: s.stream_id || undefined,
+          streamName: s.stream_name || '',
+          classId: selectedClassId,
+          className: activeClassObj?.name || '',
+          currentScore: s.score || s.out80 || '',
+          examsetMarks: s.examset_marks || {},
+          competencyMarks: s.competency_marks || {},
+          paperMarks: s.paper_marks || {},
+        };
+      });
 
       setStudents(mapped);
       setCompetencies(res.competencies || []);
@@ -141,7 +147,7 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
 
   // Handle single cell save with auto-save toast feedback
   const handleCellMarkSave = async (
-    studentId: number,
+    studentId: number | string,
     fieldKey: string,
     score: string | number,
     extraPayload: any = {}
@@ -149,7 +155,7 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
     // 1. Optimistic update in UI
     setStudents((prev) =>
       prev.map((s) => {
-        if (s.id === studentId) {
+        if (String(s.id) === String(studentId)) {
           return {
             ...s,
             marks: {
@@ -411,7 +417,7 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
 
           <FlatList
             data={filteredStudents}
-            keyExtractor={(item) => String(item.id)}
+            keyExtractor={(item, index) => String(item?.id || index)}
             contentContainerStyle={{ paddingHorizontal: 14, paddingBottom: 90 }}
             renderItem={({ item, index }) => (
               <View style={[styles.studentScoreCard, { backgroundColor: colors.card, borderColor: colors.border }]}>

@@ -73,7 +73,7 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
       });
 
       const rawStudents = res.students || [];
-      const mapped: Student[] = rawStudents.map((s: any) => {
+      const mapped: Student[] = rawStudents.map((s: any, idx: number) => {
         let attStatus: 'present' | 'absent' | 'late' = 'present';
         const rawAtt = String(s.attendance || s.attendance_status || '').toUpperCase();
         if (rawAtt === 'A' || rawAtt === 'ABSENT' || rawAtt === 'AS') {
@@ -84,15 +84,19 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
           attStatus = 'present';
         }
 
+        const safeId = s.id !== undefined && s.id !== null && String(s.id).trim() !== '' && !isNaN(Number(s.id))
+          ? Number(s.id)
+          : (s.id ? String(s.id) : `st-${idx}-${Date.now()}`);
+
         return {
-          id: Number(s.id),
-          lin: s.number || s.lin || s.peas_number || s.student_number || `LIN-${s.id}`,
+          id: safeId,
+          lin: s.number || s.lin || s.peas_number || s.student_number || `LIN-${idx + 1}`,
           peasNumber: s.number || s.peas_number,
           surname: s.surname || '',
           lastname: s.lastname || '',
-          fullName: s.name || `${s.surname || ''} ${s.lastname || ''}`.trim() || 'Learner',
+          fullName: s.name || `${s.surname || ''} ${s.lastname || ''}`.trim() || `Learner ${idx + 1}`,
           gender: s.gender || 'M',
-          streamId: s.stream_id ? Number(s.stream_id) : undefined,
+          streamId: s.stream_id || undefined,
           streamName: s.stream_name || '',
           classId: selectedClassId,
           className: activeClassObj?.name || '',
@@ -113,9 +117,9 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
   }, [selectedClassId, selectedStreamId, selectedDate, tenantSlug]);
 
   // Handle single student attendance state change
-  const handleStatusChange = (studentId: number, status: 'present' | 'absent' | 'late') => {
+  const handleStatusChange = (studentId: number | string, status: 'present' | 'absent' | 'late') => {
     setStudents((prev) =>
-      prev.map((s) => (s.id === studentId ? { ...s, attendanceStatus: status } : s))
+      prev.map((s) => (String(s.id) === String(studentId) ? { ...s, attendanceStatus: status } : s))
     );
   };
 
@@ -189,11 +193,11 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
         <Text style={[styles.fieldLabel, { color: colors.muted }]}>Select Class</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
           {schoolClasses && schoolClasses.length > 0 ? (
-            schoolClasses.map((cls) => {
+            schoolClasses.map((cls, idx) => {
               const isSelected = String(selectedClassId) === String(cls.id);
               return (
                 <TouchableOpacity
-                  key={cls.id}
+                  key={`cls-${cls.id || idx}`}
                   style={[
                     styles.classPill,
                     isSelected
@@ -246,11 +250,11 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
                   All Streams
                 </Text>
               </TouchableOpacity>
-              {availableStreams.map((st) => {
+              {availableStreams.map((st, idx) => {
                 const isSelected = String(selectedStreamId) === String(st.id);
                 return (
                   <TouchableOpacity
-                    key={st.id}
+                    key={`stream-${st.id || idx}`}
                     style={[
                       styles.streamPill,
                       isSelected
@@ -366,7 +370,7 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
       ) : (
         <FlatList
           data={filteredStudents}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item, index) => String(item?.id || index)}
           contentContainerStyle={{ paddingHorizontal: 14, paddingTop: 6, paddingBottom: 110 }}
           renderItem={({ item, index }) => (
             <View style={[styles.studentCard, { backgroundColor: colors.card, borderColor: colors.border }]}>

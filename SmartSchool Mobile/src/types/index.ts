@@ -31,16 +31,16 @@ export interface DashboardStats {
 }
 
 export interface Student {
-  id: number;
+  id: number | string;
   lin: string;
   peasNumber?: string;
   surname: string;
   lastname: string;
   fullName: string;
   gender: 'M' | 'F' | string;
-  streamId?: number;
+  streamId?: number | string;
   streamName?: string;
-  classId?: number;
+  classId?: number | string;
   className?: string;
   attendanceStatus?: 'present' | 'absent' | 'late' | null;
   marks?: Record<string, string | number>;
