@@ -38,6 +38,15 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
   const [saving, setSaving] = useState<boolean>(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
+  // Auto-sync selected class when schoolClasses loads from backend or initialClassId changes
+  useEffect(() => {
+    if (initialClassId) {
+      setSelectedClassId(initialClassId);
+    } else if (!selectedClassId && schoolClasses.length > 0) {
+      setSelectedClassId(schoolClasses[0].id);
+    }
+  }, [schoolClasses, initialClassId]);
+
   // Available streams for selected class
   const activeClassObj = schoolClasses.find((c) => String(c.id) === String(selectedClassId));
   const availableStreams: any[] = activeClassObj?.streams || [];
@@ -56,6 +65,7 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
       const res = await apiRequest(`/${tenantSlug}/mobile/students`, {
         method: 'POST',
         body: JSON.stringify({
+          schoolclass_id: selectedClassId,
           class_id: selectedClassId,
           stream_id: selectedStreamId || undefined,
           date: selectedDate,
@@ -63,20 +73,32 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
       });
 
       const rawStudents = res.students || [];
-      const mapped: Student[] = rawStudents.map((s: any) => ({
-        id: s.id,
-        lin: s.lin || s.peas_number || s.student_number || `LIN-${s.id}`,
-        peasNumber: s.peas_number,
-        surname: s.surname || '',
-        lastname: s.lastname || '',
-        fullName: `${s.surname || ''} ${s.lastname || ''}`.trim() || s.name || 'Student',
-        gender: s.gender || 'M',
-        streamId: s.stream_id,
-        streamName: s.stream_name || '',
-        classId: s.class_id || selectedClassId,
-        className: s.class_name || activeClassObj?.name || '',
-        attendanceStatus: s.attendance_status || 'present',
-      }));
+      const mapped: Student[] = rawStudents.map((s: any) => {
+        let attStatus: 'present' | 'absent' | 'late' = 'present';
+        const rawAtt = String(s.attendance || s.attendance_status || '').toUpperCase();
+        if (rawAtt === 'A' || rawAtt === 'ABSENT' || rawAtt === 'AS') {
+          attStatus = 'absent';
+        } else if (rawAtt === 'L' || rawAtt === 'PL' || rawAtt === 'LATE') {
+          attStatus = 'late';
+        } else {
+          attStatus = 'present';
+        }
+
+        return {
+          id: Number(s.id),
+          lin: s.number || s.lin || s.peas_number || s.student_number || `LIN-${s.id}`,
+          peasNumber: s.number || s.peas_number,
+          surname: s.surname || '',
+          lastname: s.lastname || '',
+          fullName: s.name || `${s.surname || ''} ${s.lastname || ''}`.trim() || 'Learner',
+          gender: s.gender || 'M',
+          streamId: s.stream_id ? Number(s.stream_id) : undefined,
+          streamName: s.stream_name || '',
+          classId: selectedClassId,
+          className: activeClassObj?.name || '',
+          attendanceStatus: attStatus,
+        };
+      });
 
       setStudents(mapped);
     } catch (err: any) {
@@ -109,20 +131,22 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
     setSaving(true);
     setSaveSuccessMsg(null);
 
-    // Build records dictionary { [studentId]: 'present' | 'absent' | 'late' }
-    const attendanceMap: Record<number, string> = {};
-    students.forEach((s) => {
-      attendanceMap[s.id] = s.attendanceStatus || 'present';
-    });
+    // Build payload matching app.blade.php
+    const records = students.map((s) => ({
+      student_id: s.id,
+      stream_id: s.streamId || selectedStreamId,
+      status: s.attendanceStatus === 'present' ? 'P' : s.attendanceStatus === 'late' ? 'L' : 'A',
+    }));
 
     try {
       const res = await apiRequest(`/${tenantSlug}/mobile/attendance/save`, {
         method: 'POST',
         body: JSON.stringify({
+          schoolclass_id: selectedClassId,
           class_id: selectedClassId,
           stream_id: selectedStreamId || undefined,
           date: selectedDate,
-          attendance: attendanceMap,
+          records,
         }),
       });
 

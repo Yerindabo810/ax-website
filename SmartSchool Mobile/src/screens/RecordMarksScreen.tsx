@@ -40,6 +40,29 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
     activeTerm?.id || (terms.length > 0 ? terms[0].id : null)
   );
 
+  // Auto-sync selections when school context finishes loading
+  useEffect(() => {
+    if (initialClassId) {
+      setSelectedClassId(initialClassId);
+    } else if (!selectedClassId && schoolClasses.length > 0) {
+      setSelectedClassId(schoolClasses[0].id);
+    }
+  }, [schoolClasses, initialClassId]);
+
+  useEffect(() => {
+    if (!selectedSubjectId && assignedSubjects.length > 0) {
+      setSelectedSubjectId(assignedSubjects[0].id);
+    }
+  }, [assignedSubjects]);
+
+  useEffect(() => {
+    if (!selectedTermId && activeTerm?.id) {
+      setSelectedTermId(activeTerm.id);
+    } else if (!selectedTermId && terms.length > 0) {
+      setSelectedTermId(terms[0].id);
+    }
+  }, [activeTerm, terms]);
+
   const [students, setStudents] = useState<Student[]>([]);
   const [competencies, setCompetencies] = useState<any[]>([]);
   const [examSets, setExamSets] = useState<any[]>([]);
@@ -73,6 +96,7 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
       const res = await apiRequest(`/${tenantSlug}/mobile/students`, {
         method: 'POST',
         body: JSON.stringify({
+          schoolclass_id: selectedClassId,
           class_id: selectedClassId,
           subject_id: selectedSubjectId,
           stream_id: selectedStreamId || undefined,
@@ -83,17 +107,21 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
 
       const rawStudents = res.students || [];
       const mapped: Student[] = rawStudents.map((s: any) => ({
-        id: s.id,
-        lin: s.lin || s.peas_number || s.student_number || `LIN-${s.id}`,
-        peasNumber: s.peas_number,
+        id: Number(s.id),
+        lin: s.number || s.lin || s.peas_number || s.student_number || `LIN-${s.id}`,
+        peasNumber: s.number || s.peas_number,
         surname: s.surname || '',
         lastname: s.lastname || '',
-        fullName: `${s.surname || ''} ${s.lastname || ''}`.trim() || s.name || 'Student',
+        fullName: s.name || `${s.surname || ''} ${s.lastname || ''}`.trim() || 'Learner',
         gender: s.gender || 'M',
-        streamId: s.stream_id,
+        streamId: s.stream_id ? Number(s.stream_id) : undefined,
         streamName: s.stream_name || '',
-        classId: s.class_id || selectedClassId,
-        marks: s.marks || {},
+        classId: selectedClassId,
+        className: activeClassObj?.name || '',
+        currentScore: s.score || s.out80 || '',
+        examsetMarks: s.examset_marks || {},
+        competencyMarks: s.competency_marks || {},
+        paperMarks: s.paper_marks || {},
       }));
 
       setStudents(mapped);
