@@ -136,11 +136,11 @@ export const ConstellationBackground: React.FC = () => {
   const SCREEN_WIDTH = windowWidth || 380;
   const SCREEN_HEIGHT = windowHeight || 800;
 
-  // SmartSchool Palette optimized for Crisp Pure White Background
-  const primaryColor = '#0d9488'; // SmartSchool teal
-  const secondaryColor = '#2563eb'; // Brand royal blue
-  const accentColor = '#059669'; // Emerald
-  const lineColor = 'rgba(13, 148, 136, 0.28)';
+  // XulIQ Constellation Palette for Dark Chalkboard Scene
+  const primaryColor = '#ffffff'; // White stars
+  const secondaryColor = '#e2e8f0'; // Subtle silvery white
+  const accentColor = '#38bdf8'; // Soft sky blue beacon
+  const lineColor = 'rgba(255, 255, 255, 0.28)';
 
   // Static distribution of constellation nodes relative to screen proportions
   const nodes: NodeData[] = [
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: '100%',
     height: '100%',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#11221f', // Deep dark chalkboard green matching XulIQ
   },
   ambientGlowTop: {
     position: 'absolute',
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     width: 280,
     height: 280,
     borderRadius: 140,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: 'rgba(20, 184, 166, 0.15)',
   },
   ambientGlowBottom: {
     position: 'absolute',
@@ -297,6 +297,6 @@ const styles = StyleSheet.create({
     width: 300,
     height: 300,
     borderRadius: 150,
-    backgroundColor: 'rgba(37, 99, 235, 0.07)',
+    backgroundColor: 'rgba(217, 119, 6, 0.12)', // Warm desk ambient reflection
   },
 });

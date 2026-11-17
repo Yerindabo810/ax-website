@@ -232,7 +232,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
       {/* 2. Top-Left Build Version Badge */}
       <View style={styles.topVersionTag} pointerEvents="none">
-        <Text style={styles.topVersionText}>SmartSchool v2.4.0</Text>
+        <Text style={styles.topVersionText}>XulIQ v3.5.6</Text>
       </View>
 
       {/* 3. Keyboard-Aware Scroll View */}
@@ -256,26 +256,26 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         >
           {/* Main Centered Card Wrapper */}
           <View style={styles.cardWrap}>
-            {/* Brand App Icon Crest */}
+            {/* Brand App Icon Crest: Bulb icon inside rounded squircle */}
             <View style={[styles.crestBadgeWrap, isKeyboardVisible && { marginBottom: 4 }]}>
               <View style={[styles.crestBadge, isKeyboardVisible && styles.crestBadgeCompact]}>
-                <Image
-                  source={require('../../assets/logo.png')}
-                  style={[styles.crestImg, isKeyboardVisible && styles.crestImgCompact]}
-                  resizeMode="contain"
+                <Ionicons
+                  name="bulb-outline"
+                  size={isKeyboardVisible ? 24 : 32}
+                  color="#ffffff"
                 />
               </View>
             </View>
 
             {/* Headlines */}
             <Text style={[styles.mainTitle, isKeyboardVisible && styles.mainTitleCompact]}>
-              Welcome to SmartSchool
+              Welcome to XulIQ
             </Text>
             <Text style={[styles.mainSubtitle, isKeyboardVisible && styles.mainSubtitleCompact]}>
               School Management System
             </Text>
 
-            {/* Crisp Pure-White Card with Soft Shadow */}
+            {/* Frosted Dark Glassmorphism Card */}
             <View style={[styles.authGlassCard, isKeyboardVisible && styles.authGlassCardCompact]}>
               {/* Alert Message Box */}
               {errorMessage && (
@@ -336,7 +336,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   {/* Form Field */}
                   <View style={styles.formGroup}>
                     <Text style={styles.formLabel}>
-                      {authMode === 'phone' ? 'PHONE NUMBER' : 'USERNAME / EMAIL'}
+                      {authMode === 'phone' ? 'PHONE NUMBER' : 'USERNAME'}
                     </Text>
                     <View
                       style={[
@@ -347,7 +347,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       <Ionicons
                         name={authMode === 'phone' ? 'call-outline' : 'person-outline'}
                         size={18}
-                        color={isIdentifierFocused ? '#0d9488' : '#64748b'}
+                        color={isIdentifierFocused ? '#38bdf8' : '#94a3b8'}
                         style={styles.inputIcon}
                       />
                       <TextInput
@@ -364,11 +364,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         }}
                         placeholder={
                           authMode === 'phone'
-                            ? 'e.g. 0772651444'
-                            : 'Enter your username or email'
+                            ? 'Enter your phone number'
+                            : 'Enter your username'
                         }
-                        placeholderTextColor="#94a3b8"
-                        selectionColor="#0d9488"
+                        placeholderTextColor="rgba(255, 255, 255, 0.45)"
+                        selectionColor="#38bdf8"
                         autoCapitalize="none"
                         autoCorrect={false}
                         keyboardType={authMode === 'phone' ? 'phone-pad' : 'email-address'}
@@ -400,7 +400,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         <Image source={{ uri: schoolLogo }} style={styles.badgeLogo} resizeMode="contain" />
                       ) : (
                         <View style={styles.badgeLogoPlaceholder}>
-                          <Ionicons name="school" size={20} color="#0d9488" />
+                          <Ionicons name="school" size={20} color="#38bdf8" />
                         </View>
                       )}
                       <View style={styles.badgeTextWrap}>
@@ -438,7 +438,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       <Ionicons
                         name="lock-closed-outline"
                         size={18}
-                        color={isPasswordFocused ? '#0d9488' : '#64748b'}
+                        color={isPasswordFocused ? '#38bdf8' : '#94a3b8'}
                         style={styles.inputIcon}
                       />
                       <TextInput
@@ -455,8 +455,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                           if (errorMessage) setErrorMessage(null);
                         }}
                         placeholder="Enter your account password"
-                        placeholderTextColor="#94a3b8"
-                        selectionColor="#0d9488"
+                        placeholderTextColor="rgba(255, 255, 255, 0.45)"
+                        selectionColor="#38bdf8"
                         secureTextEntry={!showPassword}
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -473,7 +473,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         <Ionicons
                           name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                           size={19}
-                          color={showPassword ? '#0d9488' : '#64748b'}
+                          color={showPassword ? '#38bdf8' : '#94a3b8'}
                         />
                       </TouchableOpacity>
                     </View>
@@ -481,7 +481,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
                   {/* Sign In Button */}
                   <TouchableOpacity
-                    style={styles.btnAction}
+                    style={[styles.btnAction, styles.btnActionSignIn]}
                     onPress={handleAuthenticate}
                     disabled={loading}
                     activeOpacity={0.85}
@@ -508,14 +508,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       {!isKeyboardVisible && (
         <View style={styles.screenFooter}>
           <Text style={styles.footerPoweredText}>
-            Powered by <Text style={styles.footerBold}>AX Technologies</Text>
+            Powered by <Text style={styles.footerBold}>Niair Platforms</Text>
           </Text>
           <TouchableOpacity
-            onPress={() => Linking.openURL('https://www.axtechnologies.net')}
+            onPress={() => Linking.openURL('https://www.xuliq.com')}
             activeOpacity={0.7}
           >
             <Text style={styles.footerLinkText}>
-              Visit <Text style={styles.footerLinkUnderline}>www.axtechnologies.net</Text> for more information.
+              Visit <Text style={styles.footerLinkUnderline}>www.xuliq.com</Text> for more information.
             </Text>
           </TouchableOpacity>
         </View>
@@ -527,23 +527,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#11221f',
     position: 'relative',
   },
   keyboardAvoid: {
     flex: 1,
-  },
-  topVersionTag: {
-    position: 'absolute',
-    top: 14,
-    left: 20,
-    zIndex: 30,
-  },
-  topVersionText: {
-    color: '#64748b',
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 0.3,
   },
   scrollContent: {
     flexGrow: 1,
@@ -556,6 +544,18 @@ const styles = StyleSheet.create({
   scrollContentKeyboardActive: {
     paddingTop: 12,
     justifyContent: 'flex-start',
+  },
+  topVersionTag: {
+    position: 'absolute',
+    top: 52,
+    left: 22,
+    zIndex: 10,
+  },
+  topVersionText: {
+    color: 'rgba(255, 255, 255, 0.72)',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   crestBadgeCompact: {
     width: 44,
@@ -585,68 +585,68 @@ const styles = StyleSheet.create({
   },
   crestBadgeWrap: {
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   crestBadge: {
-    width: 62,
-    height: 62,
-    borderRadius: 18,
-    backgroundColor: '#ffffff',
+    width: 58,
+    height: 58,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1.5,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(255, 255, 255, 0.42)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0f172a',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.3,
     shadowRadius: 10,
-    elevation: 3,
+    elevation: 4,
   },
   crestImg: {
-    width: 42,
-    height: 42,
+    width: 34,
+    height: 34,
   },
   mainTitle: {
     fontSize: 22,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontWeight: '700',
+    color: '#ffffff',
     textAlign: 'center',
-    letterSpacing: -0.3,
+    letterSpacing: 0.2,
     marginBottom: 4,
   },
   mainSubtitle: {
-    fontSize: 13,
-    color: '#64748b',
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.72)',
     textAlign: 'center',
-    marginBottom: 18,
-    fontWeight: '500',
+    marginBottom: 20,
+    fontWeight: '400',
   },
   authGlassCard: {
     width: '100%',
     padding: 22,
-    borderRadius: 22,
-    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    backgroundColor: 'rgba(24, 38, 36, 0.74)',
     borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 4,
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 6,
   },
   alertBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef2f2',
+    backgroundColor: 'rgba(239, 68, 68, 0.18)',
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: 'rgba(239, 68, 68, 0.45)',
     padding: 12,
     borderRadius: 12,
     marginBottom: 16,
     gap: 8,
   },
   alertText: {
-    color: '#dc2626',
+    color: '#fca5a5',
     fontSize: 12,
     fontWeight: '600',
     flex: 1,
@@ -657,30 +657,30 @@ const styles = StyleSheet.create({
   },
   segmentedWrap: {
     flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
-    borderRadius: 14,
-    padding: 4,
-    marginBottom: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 12,
+    padding: 3,
+    marginBottom: 18,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   segmentTab: {
     flex: 1,
     paddingVertical: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 11,
+    borderRadius: 9,
   },
   segmentTabActive: {
-    backgroundColor: '#ffffff',
-    shadowColor: '#0f172a',
+    backgroundColor: '#94a3b8',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 2,
   },
   segmentText: {
-    color: '#64748b',
+    color: 'rgba(255, 255, 255, 0.85)',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -692,25 +692,25 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   formLabel: {
-    color: '#334155',
+    color: 'rgba(255, 255, 255, 0.75)',
     fontSize: 11,
     fontWeight: '700',
     marginBottom: 7,
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'rgba(0, 0, 0, 0.22)',
     borderWidth: 1.5,
-    borderColor: '#cbd5e1',
+    borderColor: 'rgba(255, 255, 255, 0.35)',
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 48,
   },
   inputWrapperFocused: {
-    borderColor: '#0d9488',
-    backgroundColor: '#ffffff',
+    borderColor: '#38bdf8',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
   },
   inputIcon: {
     marginRight: 10,
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     height: '100%',
-    color: '#0f172a',
+    color: '#ffffff',
     fontSize: 14,
   },
   eyeBtn: {
@@ -727,20 +727,26 @@ const styles = StyleSheet.create({
   btnAction: {
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#0d9488',
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
+  },
+  btnActionSignIn: {
+    backgroundColor: '#0d9488',
+    borderColor: '#14b8a6',
     shadowColor: '#0d9488',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 3,
   },
   btnActionText: {
     color: '#ffffff',
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 0.2,
   },
   matchedSchoolBadge: {
@@ -749,9 +755,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 12,
     borderRadius: 14,
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(255, 255, 255, 0.18)',
     marginBottom: 18,
   },
   badgeLeft: {
@@ -770,7 +776,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#f0fdf4',
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -779,12 +785,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   badgeSchoolName: {
-    color: '#0f172a',
+    color: '#ffffff',
     fontSize: 13,
     fontWeight: '700',
   },
   badgeUserName: {
-    color: '#64748b',
+    color: 'rgba(255, 255, 255, 0.72)',
     fontSize: 11,
     marginTop: 2,
   },
@@ -792,21 +798,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: 'rgba(255, 255, 255, 0.22)',
   },
   btnSwitchText: {
-    color: '#0f172a',
+    color: '#ffffff',
     fontSize: 11,
     fontWeight: '700',
   },
   helpNoteText: {
     marginTop: 18,
-    color: '#64748b',
-    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.82)',
+    fontSize: 13,
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 19,
   },
   screenFooter: {
     position: 'absolute',
@@ -817,20 +823,20 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   footerPoweredText: {
-    color: '#64748b',
+    color: 'rgba(255, 255, 255, 0.72)',
     fontSize: 12,
     marginBottom: 4,
   },
   footerBold: {
-    color: '#0f172a',
+    color: '#ffffff',
     fontWeight: '700',
   },
   footerLinkText: {
-    color: '#64748b',
-    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.72)',
+    fontSize: 12,
   },
   footerLinkUnderline: {
-    color: '#0d9488',
+    color: '#ffffff',
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
