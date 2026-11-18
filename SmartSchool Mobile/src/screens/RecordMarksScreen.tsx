@@ -8,6 +8,9 @@ import {
   TextInput,
   ScrollView,
   ActivityIndicator,
+  Alert,
+  Modal,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
@@ -29,18 +32,23 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
 
   const colors = isDarkMode ? darkColors : lightColors;
 
+  // Selected filters
   const [selectedClassId, setSelectedClassId] = useState<number | null>(
     initialClassId || (schoolClasses.length > 0 ? schoolClasses[0].id : null)
   );
-  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(
-    assignedSubjects.length > 0 ? assignedSubjects[0].id : null
-  );
+  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
   const [selectedStreamId, setSelectedStreamId] = useState<number | null>(null);
   const [selectedTermId, setSelectedTermId] = useState<number | null>(
     activeTerm?.id || (terms.length > 0 ? terms[0].id : null)
   );
 
-  // Auto-sync selections when school context finishes loading
+  // Dropdown Modals visibility
+  const [isClassModalVisible, setIsClassModalVisible] = useState<boolean>(false);
+  const [isSubjectModalVisible, setIsSubjectModalVisible] = useState<boolean>(false);
+  const [isStreamModalVisible, setIsStreamModalVisible] = useState<boolean>(false);
+  const [isTermModalVisible, setIsTermModalVisible] = useState<boolean>(false);
+
+  // Auto-sync initial selections
   useEffect(() => {
     if (initialClassId) {
       setSelectedClassId(initialClassId);
@@ -50,12 +58,6 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
   }, [schoolClasses, initialClassId]);
 
   useEffect(() => {
-    if (!selectedSubjectId && assignedSubjects.length > 0) {
-      setSelectedSubjectId(assignedSubjects[0].id);
-    }
-  }, [assignedSubjects]);
-
-  useEffect(() => {
     if (!selectedTermId && activeTerm?.id) {
       setSelectedTermId(activeTerm.id);
     } else if (!selectedTermId && terms.length > 0) {
@@ -63,25 +65,45 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
     }
   }, [activeTerm, terms]);
 
+  // Active object references
+  const activeClassObj = schoolClasses.find((c) => String(c.id) === String(selectedClassId));
+  const availableStreams: any[] = activeClassObj?.streams || [];
+  const classSubjects: any[] =
+    activeClassObj?.subjects && activeClassObj.subjects.length > 0
+      ? activeClassObj.subjects
+      : assignedSubjects;
+
+  const activeSubjectObj = classSubjects.find((s) => String(s.id) === String(selectedSubjectId));
+  const activeStreamObj = availableStreams.find((s) => String(s.id) === String(selectedStreamId));
+  const activeTermObj = terms.find((t) => String(t.id) === String(selectedTermId)) || activeTerm;
+
+  // Auto-select first subject if not set
+  useEffect(() => {
+    if (classSubjects.length > 0 && !selectedSubjectId) {
+      setSelectedSubjectId(classSubjects[0].id);
+    }
+  }, [classSubjects, selectedSubjectId]);
+
+  // Data states
   const [students, setStudents] = useState<Student[]>([]);
   const [competencies, setCompetencies] = useState<any[]>([]);
   const [examSets, setExamSets] = useState<any[]>([]);
-  const [isNumericalOnly, setIsNumericalOnly] = useState<boolean>(false);
+  const [papers, setPapers] = useState<any[]>([]);
+  const [classSubjectId, setClassSubjectId] = useState<string | number | null>(null);
+  const [isAlevel, setIsAlevel] = useState<boolean>(false);
+  const [isPrimary, setIsPrimary] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [savingAll, setSavingAll] = useState<boolean>(false);
 
-  // Save feedback toast
-  const [saveToast, setSaveToast] = useState<{ status: 'saving' | 'saved' | 'idle'; message: string }>({
+  // Real-time cell save statuses: { [cellKey]: 'saving' | 'saved' | 'error' }
+  const [cellStatus, setCellStatus] = useState<Record<string, 'saving' | 'saved' | 'error'>>({});
+
+  // Floating save feedback toast (matches #mobileSaveToast in app.blade.php)
+  const [saveToast, setSaveToast] = useState<{ status: 'saving' | 'saved' | 'error' | 'idle'; message: string }>({
     status: 'idle',
     message: '',
   });
-
-  // Selected class & streams
-  const activeClassObj = schoolClasses.find((c) => String(c.id) === String(selectedClassId));
-  const availableStreams: any[] = activeClassObj?.streams || [];
-  const classSubjects: any[] = activeClassObj?.subjects && activeClassObj.subjects.length > 0
-    ? activeClassObj.subjects
-    : assignedSubjects;
 
   // Fetch assessment data from backend
   const fetchMarksSheet = async () => {
@@ -107,9 +129,10 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
 
       const rawStudents = res.students || [];
       const mapped: Student[] = rawStudents.map((s: any, idx: number) => {
-        const safeId = s.id !== undefined && s.id !== null && String(s.id).trim() !== '' && !isNaN(Number(s.id))
-          ? Number(s.id)
-          : (s.id ? String(s.id) : `st-${idx}-${Date.now()}`);
+        const safeId =
+          s.id !== undefined && s.id !== null && String(s.id).trim() !== '' && !isNaN(Number(s.id))
+            ? Number(s.id)
+            : s.id ? String(s.id) : `st-${idx}-${Date.now()}`;
 
         return {
           id: safeId,
@@ -124,6 +147,7 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
           classId: selectedClassId,
           className: activeClassObj?.name || '',
           currentScore: s.score || s.out80 || '',
+          out80: s.out80,
           examsetMarks: s.examset_marks || {},
           competencyMarks: s.competency_marks || {},
           paperMarks: s.paper_marks || {},
@@ -133,7 +157,10 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
       setStudents(mapped);
       setCompetencies(res.competencies || []);
       setExamSets(res.exam_sets || []);
-      setIsNumericalOnly(!!res.is_numerical_only);
+      setPapers(res.papers || []);
+      setClassSubjectId(res.class_subject_id || null);
+      setIsAlevel(!!res.is_alevel);
+      setIsPrimary(!!res.is_primary);
     } catch (err: any) {
       console.warn('Marks fetch warning:', err);
     } finally {
@@ -145,63 +172,182 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
     fetchMarksSheet();
   }, [selectedClassId, selectedSubjectId, selectedStreamId, selectedTermId, tenantSlug]);
 
-  // Handle single cell save with auto-save toast feedback
-  const handleCellMarkSave = async (
+  // Real-time single cell auto-save (matches saveMarkCellAjax in app.blade.php)
+  const handleScoreBoxChange = async (
     studentId: number | string,
-    fieldKey: string,
-    score: string | number,
-    extraPayload: any = {}
+    scoreType: 'competency' | 'examset' | 'paper' | 'mark100' | 'out80',
+    typeId: string | number | undefined,
+    paperId: string | number | undefined,
+    scoreVal: string
   ) => {
-    // 1. Optimistic update in UI
+    const cleanScore = scoreVal.trim();
+    const cellKey = `${studentId}_${scoreType}_${typeId || ''}_${paperId || ''}`;
+
+    // 1. Optimistic update in-memory student object
     setStudents((prev) =>
       prev.map((s) => {
         if (String(s.id) === String(studentId)) {
-          return {
-            ...s,
-            marks: {
-              ...s.marks,
-              [fieldKey]: score,
-            },
-          };
+          if (scoreType === 'competency' && typeId) {
+            return {
+              ...s,
+              competencyMarks: {
+                ...(s.competencyMarks || {}),
+                [String(typeId)]: cleanScore,
+              },
+            };
+          } else if (scoreType === 'examset' && typeId) {
+            return {
+              ...s,
+              examsetMarks: {
+                ...(s.examsetMarks || {}),
+                [String(typeId)]: cleanScore,
+              },
+            };
+          } else if (scoreType === 'paper' && paperId) {
+            const currentPaper = (s.paperMarks && s.paperMarks[String(paperId)]) || {};
+            const esKey = typeId ? String(typeId) : 'default';
+            return {
+              ...s,
+              paperMarks: {
+                ...(s.paperMarks || {}),
+                [String(paperId)]: {
+                  ...currentPaper,
+                  [esKey]: cleanScore,
+                },
+              },
+            };
+          } else {
+            return {
+              ...s,
+              currentScore: cleanScore,
+              out80: cleanScore,
+            };
+          }
         }
         return s;
       })
     );
 
+    // 2. Set saving status
+    setCellStatus((prev) => ({ ...prev, [cellKey]: 'saving' }));
     setSaveToast({ status: 'saving', message: 'Saving mark...' });
 
+    // Cell ID format matching app.blade.php
+    let cellId = '';
+    if (scoreType === 'competency') {
+      cellId = `${studentId}_${typeId}_remark`;
+    } else if (scoreType === 'examset') {
+      cellId = `${studentId}_examset_${typeId}`;
+    } else if (scoreType === 'paper') {
+      cellId = typeId ? `${studentId}_paper_${paperId}_examset_${typeId}` : `${studentId}_paper_${paperId}_mark`;
+    } else {
+      cellId = `${studentId}_mark`;
+    }
+
     try {
-      await apiRequest(`/${tenantSlug}/mobile/marks/cell`, {
+      const res = await apiRequest(`/${tenantSlug}/mobile/marks/cell`, {
         method: 'POST',
         body: JSON.stringify({
+          id: cellId,
+          mark: cleanScore,
+          class_subject_id: classSubjectId,
+          schoolterm_id: selectedTermId,
           student_id: studentId,
-          subject_id: selectedSubjectId,
-          class_id: selectedClassId,
-          term_id: selectedTermId,
-          score,
-          ...extraPayload,
+          class_subject_competency_id: scoreType === 'competency' ? typeId : undefined,
         }),
       });
 
-      setSaveToast({ status: 'saved', message: '✓ All marks saved' });
+      setCellStatus((prev) => ({ ...prev, [cellKey]: 'saved' }));
+      setSaveToast({ status: 'saved', message: res.message || '✓ All marks saved' });
+
+      // If backend calculated out of 80
+      if (res.converted80 !== undefined && res.student_id) {
+        setStudents((prev) =>
+          prev.map((s) => (String(s.id) === String(res.student_id) ? { ...s, out80: res.converted80 } : s))
+        );
+      }
+
       setTimeout(() => {
+        setCellStatus((prev) => {
+          const next = { ...prev };
+          delete next[cellKey];
+          return next;
+        });
         setSaveToast((t) => (t.status === 'saved' ? { status: 'idle', message: '' } : t));
       }, 2500);
-    } catch {
-      setSaveToast({ status: 'idle', message: '' });
+    } catch (err: any) {
+      setCellStatus((prev) => ({ ...prev, [cellKey]: 'error' }));
+      setSaveToast({ status: 'error', message: '✕ Error saving mark' });
+      setTimeout(() => {
+        setSaveToast((t) => (t.status === 'error' ? { status: 'idle', message: '' } : t));
+      }, 3000);
     }
   };
 
+  // Submit all marks in batch (matches submitMarks in app.blade.php)
+  const handleSaveAllMarks = async () => {
+    if (!selectedClassId || !selectedSubjectId || students.length === 0) return;
+
+    setSavingAll(true);
+    setSaveToast({ status: 'saving', message: 'Saving all marks...' });
+
+    const payload = {
+      schoolclass_id: selectedClassId,
+      class_subject_id: classSubjectId,
+      subject_id: selectedSubjectId,
+      stream_id: selectedStreamId || undefined,
+      term_id: selectedTermId,
+      scores: students.map((s) => ({
+        student_id: s.id,
+        stream_id: s.streamId || selectedStreamId,
+        score: s.currentScore,
+        examset_marks: s.examsetMarks || {},
+        competency_marks: s.competencyMarks || {},
+      })),
+    };
+
+    try {
+      const res = await apiRequest(`/${tenantSlug}/mobile/marks/save`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      setSaveToast({ status: 'saved', message: res.message || '✓ All marks saved!' });
+      Alert.alert('Assessment Marks', res.message || 'All marks saved successfully to the main system.');
+      setTimeout(() => {
+        setSaveToast((t) => (t.status === 'saved' ? { status: 'idle', message: '' } : t));
+      }, 3000);
+    } catch (err: any) {
+      Alert.alert('Save Failed', err.message || 'Unable to save marks.');
+    } finally {
+      setSavingAll(false);
+    }
+  };
+
+  // Filter students by search
   const filteredStudents = students.filter(
     (s) =>
       s.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.lin?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredExamSets = (examSets || []).filter((es) => {
+    if (isPrimary) {
+      const sn = String(es.short_name || es.name || '').toLowerCase();
+      if (sn.includes('aoi')) return false;
+    }
+    return true;
+  });
+  const hasExamSets = filteredExamSets.length > 0;
+  const hasPapers = papers && papers.length > 0;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* 1. Filter Configuration Card (matches tab-marks in app.blade.php) */}
-      <View style={[styles.filterCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {/* =====================================================
+          1. TOP FILTER CARD (.m-card from app.blade.php)
+          ===================================================== */}
+      <View style={[styles.mCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        {/* Header Row: Title & Auto-Save Badge */}
         <View style={styles.cardHeaderRow}>
           <View style={styles.titleWithIcon}>
             <Ionicons name="create" size={18} color="#2563eb" />
@@ -213,166 +359,121 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
           </View>
         </View>
 
-        {/* 1. Class Selector */}
-        <Text style={[styles.fieldLabel, { color: colors.muted }]}>1. Select Class</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
-          {schoolClasses.map((cls) => {
-            const isSelected = String(selectedClassId) === String(cls.id);
-            return (
-              <TouchableOpacity
-                key={cls.id}
+        {/* 2-Column Filter Grid Row 1: Select Class & Subject */}
+        <View style={styles.filterGrid}>
+          {/* Column 1: Select Class */}
+          <View style={styles.filterCol}>
+            <Text style={[styles.mLabel, { color: colors.muted }]}>1. Select Class</Text>
+            <TouchableOpacity
+              style={[styles.mSelect, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+              onPress={() => setIsClassModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Text
                 style={[
-                  styles.pill,
-                  isSelected
-                    ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                    : { backgroundColor: colors.inputBg, borderColor: colors.border },
+                  styles.selectText,
+                  selectedClassId ? { color: colors.text, fontWeight: '700' } : { color: colors.muted },
                 ]}
-                onPress={() => {
-                  setSelectedClassId(cls.id);
-                  setSelectedStreamId(null);
-                }}
+                numberOfLines={1}
               >
-                <Text
-                  style={[
-                    styles.pillText,
-                    isSelected ? { color: '#ffffff', fontWeight: '800' } : { color: colors.subtext },
-                  ]}
-                >
-                  {cls.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+                {activeClassObj ? activeClassObj.name : '-- Choose Class --'}
+              </Text>
+              <Ionicons name="chevron-down" size={15} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
 
-        {/* 2. Subject Selector */}
-        <Text style={[styles.fieldLabel, { color: colors.muted, marginTop: 10 }]}>2. Subject</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
-          {classSubjects.map((sub) => {
-            const isSelected = String(selectedSubjectId) === String(sub.id);
-            return (
-              <TouchableOpacity
-                key={sub.id}
+          {/* Column 2: Subject */}
+          <View style={styles.filterCol}>
+            <Text style={[styles.mLabel, { color: colors.muted }]}>2. Subject</Text>
+            <TouchableOpacity
+              style={[
+                styles.mSelect,
+                { backgroundColor: colors.inputBg, borderColor: colors.border },
+                classSubjects.length === 0 && { opacity: 0.6 },
+              ]}
+              onPress={() => {
+                if (classSubjects.length > 0) setIsSubjectModalVisible(true);
+              }}
+              disabled={classSubjects.length === 0}
+              activeOpacity={0.8}
+            >
+              <Text
                 style={[
-                  styles.pill,
-                  isSelected
-                    ? { backgroundColor: '#2563eb', borderColor: '#1d4ed8' }
-                    : { backgroundColor: colors.inputBg, borderColor: colors.border },
+                  styles.selectText,
+                  selectedSubjectId ? { color: colors.text, fontWeight: '700' } : { color: colors.muted },
                 ]}
-                onPress={() => setSelectedSubjectId(sub.id)}
+                numberOfLines={1}
               >
-                <Text
-                  style={[
-                    styles.pillText,
-                    isSelected ? { color: '#ffffff', fontWeight: '800' } : { color: colors.subtext },
-                  ]}
-                >
-                  {sub.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+                {activeSubjectObj ? activeSubjectObj.name : '-- Select Subject --'}
+              </Text>
+              <Ionicons name="chevron-down" size={15} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
+        </View>
 
-        {/* 3. Stream & Term Selectors */}
-        <View style={styles.streamTermRow}>
-          {availableStreams.length > 0 && (
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.fieldLabel, { color: colors.muted }]}>3. Stream</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.miniPill,
-                    selectedStreamId === null
-                      ? { backgroundColor: colors.text }
-                      : { backgroundColor: colors.inputBg, borderColor: colors.border, borderWidth: 1 },
-                  ]}
-                  onPress={() => setSelectedStreamId(null)}
-                >
-                  <Text
-                    style={[
-                      styles.miniPillText,
-                      selectedStreamId === null ? { color: colors.card, fontWeight: '700' } : { color: colors.muted },
-                    ]}
-                  >
-                    All Streams
-                  </Text>
-                </TouchableOpacity>
-                {availableStreams.map((st) => (
-                  <TouchableOpacity
-                    key={st.id}
-                    style={[
-                      styles.miniPill,
-                      String(selectedStreamId) === String(st.id)
-                        ? { backgroundColor: colors.text }
-                        : { backgroundColor: colors.inputBg, borderColor: colors.border, borderWidth: 1 },
-                    ]}
-                    onPress={() => setSelectedStreamId(st.id)}
-                  >
-                    <Text
-                      style={[
-                        styles.miniPillText,
-                        String(selectedStreamId) === String(st.id)
-                          ? { color: colors.card, fontWeight: '700' }
-                          : { color: colors.muted },
-                      ]}
-                    >
-                      {st.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+        {/* 2-Column Filter Grid Row 2: Stream & Academic Term */}
+        <View style={[styles.filterGrid, { marginBottom: 0 }]}>
+          {/* Column 1: Stream (Optional) */}
+          <View style={styles.filterCol}>
+            <Text style={[styles.mLabel, { color: colors.muted }]}>3. Stream (Optional)</Text>
+            <TouchableOpacity
+              style={[
+                styles.mSelect,
+                { backgroundColor: colors.inputBg, borderColor: colors.border },
+                availableStreams.length === 0 && { opacity: 0.6 },
+              ]}
+              onPress={() => {
+                if (availableStreams.length > 0) setIsStreamModalVisible(true);
+              }}
+              disabled={availableStreams.length === 0}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.selectText,
+                  selectedStreamId ? { color: colors.text, fontWeight: '700' } : { color: colors.muted },
+                ]}
+                numberOfLines={1}
+              >
+                {activeStreamObj ? activeStreamObj.name : 'All Streams'}
+              </Text>
+              <Ionicons name="chevron-down" size={15} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
 
-          {terms.length > 0 && (
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.fieldLabel, { color: colors.muted }]}>4. Term</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
-                {terms.map((t) => (
-                  <TouchableOpacity
-                    key={t.id}
-                    style={[
-                      styles.miniPill,
-                      String(selectedTermId) === String(t.id)
-                        ? { backgroundColor: colors.primary }
-                        : { backgroundColor: colors.inputBg, borderColor: colors.border, borderWidth: 1 },
-                    ]}
-                    onPress={() => setSelectedTermId(t.id)}
-                  >
-                    <Text
-                      style={[
-                        styles.miniPillText,
-                        String(selectedTermId) === String(t.id)
-                          ? { color: '#ffffff', fontWeight: '700' }
-                          : { color: colors.subtext },
-                      ]}
-                    >
-                      {t.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+          {/* Column 2: Academic Term */}
+          <View style={styles.filterCol}>
+            <Text style={[styles.mLabel, { color: colors.muted }]}>4. Academic Term</Text>
+            <TouchableOpacity
+              style={[
+                styles.mSelect,
+                { backgroundColor: colors.inputBg, borderColor: colors.border },
+                terms.length === 0 && { opacity: 0.6 },
+              ]}
+              onPress={() => {
+                if (terms.length > 0) setIsTermModalVisible(true);
+              }}
+              disabled={terms.length === 0}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.selectText,
+                  selectedTermId ? { color: colors.text, fontWeight: '700' } : { color: colors.muted },
+                ]}
+                numberOfLines={1}
+              >
+                {activeTermObj ? `${activeTermObj.name} (${activeTermObj.academic_year || ''})` : '-- Select Term --'}
+              </Text>
+              <Ionicons name="chevron-down" size={15} color={colors.muted} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
-      {/* Floating Real-Time Save Feedback Badge (matches #mobileSaveToast in app.blade.php) */}
-      {saveToast.status !== 'idle' && (
-        <View style={[styles.saveToast, { backgroundColor: saveToast.status === 'saved' ? '#dcfce7' : '#eff6ff' }]}>
-          <Ionicons
-            name={saveToast.status === 'saved' ? 'checkmark-circle' : 'sync'}
-            size={16}
-            color={saveToast.status === 'saved' ? '#15803d' : '#2563eb'}
-          />
-          <Text style={[styles.saveToastText, { color: saveToast.status === 'saved' ? '#15803d' : '#2563eb' }]}>
-            {saveToast.message}
-          </Text>
-        </View>
-      )}
-
-      {/* 2. Main Score Entry Marksheet Container */}
+      {/* =====================================================
+          2. MAIN SCORE ENTRY CONTAINER (.marks-sheet-container)
+          ===================================================== */}
       {loading ? (
         <View style={styles.loadingArea}>
           <ActivityIndicator size="large" color="#2563eb" />
@@ -382,29 +483,44 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
         </View>
       ) : !selectedClassId || !selectedSubjectId ? (
         <View style={[styles.emptyPlaceholder, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Ionicons name="document-text-outline" size={40} color={colors.muted} />
+          <Ionicons name="document-text-outline" size={42} color="#94a3b8" />
           <Text style={[styles.placeholderTitle, { color: colors.text }]}>Select Class & Subject</Text>
           <Text style={[styles.placeholderSubtitle, { color: colors.muted }]}>
-            Choose a Class and Subject above to open the live Assessment Marksheet.
+            Select a Class and Subject above to open the live Assessment Marksheet.
           </Text>
         </View>
       ) : filteredStudents.length === 0 ? (
         <View style={[styles.emptyPlaceholder, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Ionicons name="search-outline" size={36} color={colors.muted} />
-          <Text style={[styles.placeholderTitle, { color: colors.text }]}>No Students Found</Text>
+          <Ionicons name="search-outline" size={38} color="#94a3b8" />
+          <Text style={[styles.placeholderTitle, { color: colors.text }]}>No Learners Found</Text>
           <Text style={[styles.placeholderSubtitle, { color: colors.muted }]}>
-            {searchQuery ? 'No student matches that search query' : 'No students registered for this class & subject'}
+            {searchQuery
+              ? 'No registered learner matches that name or LIN.'
+              : 'No learners registered in this class/stream.'}
           </Text>
         </View>
       ) : (
-        <View style={{ flex: 1 }}>
-          {/* Header & Search */}
-          <View style={styles.rosterHeader}>
-            <Text style={[styles.rosterTitle, { color: colors.text }]}>
-              Assessment Marksheet ({filteredStudents.length} {learnersLabel})
-            </Text>
-            <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Ionicons name="search" size={14} color={colors.muted} />
+        <View style={styles.marksSheetContainer}>
+          {/* Marksheet Card Header (.marks-sheet-header from app.blade.php) */}
+          <View style={[styles.marksSheetHeader, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.sheetHeaderTopRow}>
+              <View style={styles.marksSheetHeaderIcon}>
+                <Ionicons name="grid" size={18} color="#2563eb" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.marksSheetTitle, { color: colors.text }]}>
+                  Assessment Marksheet ({filteredStudents.length}{' '}
+                  {filteredStudents.length === 1 ? learnerLabel : learnersLabel})
+                </Text>
+                <Text style={[styles.marksSheetSubtitle, { color: colors.muted }]}>
+                  Auto-saving mark entry. Tap any box to enter scores.
+                </Text>
+              </View>
+            </View>
+
+            {/* Search Box */}
+            <View style={[styles.searchBox, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+              <Ionicons name="search" size={15} color="#94a3b8" />
               <TextInput
                 style={[styles.searchInput, { color: colors.text }]}
                 value={searchQuery}
@@ -415,157 +531,603 @@ export const RecordMarksScreen: React.FC<{ initialClassId?: number }> = ({ initi
             </View>
           </View>
 
+          {/* Roster List of Student Cards */}
           <FlatList
             data={filteredStudents}
             keyExtractor={(item, index) => String(item?.id || index)}
-            contentContainerStyle={{ paddingHorizontal: 14, paddingBottom: 90 }}
-            renderItem={({ item, index }) => (
-              <View style={[styles.studentScoreCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                {/* Header */}
-                <View style={styles.scoreCardHeader}>
-                  <View style={styles.scoreCardLeft}>
-                    <View style={[styles.avatarCircle, { backgroundColor: '#eff6ff' }]}>
-                      <Text style={[styles.avatarText, { color: '#2563eb' }]}>
-                        {item.surname ? item.surname.charAt(0).toUpperCase() : 'S'}
-                      </Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.studentFullName, { color: colors.text }]} numberOfLines={1}>
-                        {item.fullName.toUpperCase()}
-                      </Text>
-                      <Text style={[styles.studentMeta, { color: colors.muted }]}>
-                        {item.lin} {item.streamName ? `• ${item.streamName}` : ''}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={[styles.indexBadge, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
-                    <Text style={[styles.indexText, { color: colors.subtext }]}>#{index + 1}</Text>
-                  </View>
-                </View>
+            contentContainerStyle={{ paddingHorizontal: 14, paddingTop: 6, paddingBottom: 110 }}
+            renderItem={({ item, index }) => {
+              const cardNum = index + 1;
+              const firstLetter = item.fullName ? item.fullName.trim().charAt(0).toUpperCase() : 'S';
 
-                {/* Score Input Blocks: Competencies / Exam Sets */}
-                <View style={styles.scoresContainer}>
-                  {/* A. Activities / Competencies (New Lower Secondary Curriculum: A1, A2, A3) */}
-                  {competencies.length > 0 && (
-                    <View style={styles.compGroup}>
-                      <Text style={[styles.scoreGroupLabel, { color: colors.muted }]}>
-                        Activities of Integration (1-3):
-                      </Text>
-                      <View style={styles.compList}>
-                        {competencies.map((comp) => {
-                          const fieldKey = `comp_${comp.id}`;
-                          const currentScore = item.marks ? String(item.marks[fieldKey] || '') : '';
-
-                          return (
-                            <View key={comp.id} style={styles.compItem}>
-                              <Text style={[styles.compCode, { color: colors.text }]}>{comp.code || 'AoI'}</Text>
-                              <View style={styles.compButtonsRow}>
-                                {[1, 2, 3].map((val) => {
-                                  const isSelected = currentScore === String(val);
-                                  return (
-                                    <TouchableOpacity
-                                      key={val}
-                                      style={[
-                                        styles.compBtn,
-                                        isSelected
-                                          ? { backgroundColor: '#2563eb', borderColor: '#1d4ed8' }
-                                          : { backgroundColor: colors.inputBg, borderColor: colors.border },
-                                      ]}
-                                      onPress={() =>
-                                        handleCellMarkSave(
-                                          item.id,
-                                          fieldKey,
-                                          isSelected ? '' : String(val),
-                                          { competency_id: comp.id }
-                                        )
-                                      }
-                                    >
-                                      <Text
-                                        style={[
-                                          styles.compBtnText,
-                                          isSelected ? { color: '#ffffff', fontWeight: '800' } : { color: colors.text },
-                                        ]}
-                                      >
-                                        {val}
-                                      </Text>
-                                    </TouchableOpacity>
-                                  );
-                                })}
-                              </View>
-                            </View>
-                          );
-                        })}
+              return (
+                /* EXACT .assessment-student-card MATCHING app.blade.php */
+                <View
+                  style={[
+                    styles.assessmentStudentCard,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                  ]}
+                >
+                  {/* Top Header: Avatar, Name, LIN, Index */}
+                  <View style={[styles.studentCardHeader, { borderBottomColor: colors.border }]}>
+                    <View style={styles.studentCardHeaderLeft}>
+                      {/* Avatar Badge */}
+                      <View style={styles.studentAvatarBadge}>
+                        <Text style={styles.avatarLetter}>{firstLetter}</Text>
+                      </View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={[styles.studentCardName, { color: colors.text }]} numberOfLines={1}>
+                          {item.fullName.toUpperCase()}
+                        </Text>
+                        <Text style={[styles.studentCardMeta, { color: colors.muted }]}>
+                          <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: '700' }}>
+                            {item.lin}
+                          </Text>
+                          {item.streamName ? ` • Stream ${item.streamName}` : ''}
+                        </Text>
                       </View>
                     </View>
-                  )}
 
-                  {/* B. Exam Sets (e.g. BOT, MOT, EOT /100) */}
-                  {examSets.length > 0 && (
-                    <View style={[styles.examGroup, competencies.length > 0 && { marginTop: 8 }]}>
-                      <Text style={[styles.scoreGroupLabel, { color: colors.muted }]}>
-                        Term Exam Sets (/100):
-                      </Text>
-                      <View style={styles.examInputsRow}>
-                        {examSets.map((es) => {
-                          const fieldKey = `examset_${es.id}`;
-                          const currentVal = item.marks ? String(item.marks[fieldKey] || '') : '';
+                    {/* #{cardNum} Index Pill */}
+                    <View style={[styles.cardIndexBadge, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+                      <Text style={[styles.cardIndexText, { color: colors.muted }]}>#{cardNum}</Text>
+                    </View>
+                  </View>
+
+                  {/* Scores Grid (.assessment-card-scores-grid) */}
+                  <View style={styles.assessmentScoresGrid}>
+                    {/* 1. O-Level Competencies (A1 /3, A2 /3, ...) — never shown for Primary or A-Level */}
+                    {!isPrimary && !isAlevel && competencies.length > 0 && (
+                      competencies.map((comp) => {
+                        const cellKey = `${item.id}_competency_${comp.id}_`;
+                        const status = cellStatus[cellKey];
+                        const val = item.competencyMarks ? String(item.competencyMarks[comp.id] ?? '') : '';
+
+                        return (
+                          <View key={`comp-${comp.id}`} style={styles.scoreInputItem}>
+                            <View style={styles.scoreInputHeader}>
+                              <Text style={[styles.scoreLabel, { color: colors.subtext }]}>{comp.code}</Text>
+                              <Text style={[styles.scoreMax, { color: colors.muted }]}>/3</Text>
+                            </View>
+                            <TextInput
+                              style={[
+                                styles.mobileScoreBox,
+                                {
+                                  backgroundColor: colors.inputBg,
+                                  borderColor: colors.border,
+                                  color: colors.text,
+                                },
+                                status === 'saving' && styles.boxSaving,
+                                status === 'saved' && styles.boxSaved,
+                                status === 'error' && styles.boxError,
+                              ]}
+                              defaultValue={val}
+                              placeholder="-"
+                              placeholderTextColor={colors.muted}
+                              keyboardType="numeric"
+                              maxLength={3}
+                              onEndEditing={(e) =>
+                                handleScoreBoxChange(item.id, 'competency', comp.id, undefined, e.nativeEvent.text)
+                              }
+                            />
+                          </View>
+                        );
+                      })
+                    )}
+
+                    {/* 2. A-Level / Primary vs O-Level Exam Sets & Papers */}
+                    {isAlevel || isPrimary ? (
+                      hasExamSets ? (
+                        filteredExamSets.map((es) => {
+                          if (hasPapers) {
+                            return papers.map((paper) => {
+                              const cellKey = `${item.id}_paper_${es.id}_${paper.id}`;
+                              const status = cellStatus[cellKey];
+                              const maxM = paper.max || es.max || 100;
+                              const pMap = item.paperMarks && item.paperMarks[paper.id];
+                              const pVal = pMap && pMap[es.id] !== undefined ? String(pMap[es.id]) : '';
+
+                              return (
+                                <View key={`p-${paper.id}-es-${es.id}`} style={styles.scoreInputItem}>
+                                  <View style={styles.scoreInputHeader}>
+                                    <Text style={[styles.scoreLabel, { color: colors.subtext }]}>
+                                      {String(es.short_name).toUpperCase()} P{paper.number}
+                                    </Text>
+                                    <Text style={[styles.scoreMax, { color: colors.muted }]}>/{maxM}</Text>
+                                  </View>
+                                  <TextInput
+                                    style={[
+                                      styles.mobileScoreBox,
+                                      {
+                                        backgroundColor: colors.inputBg,
+                                        borderColor: colors.border,
+                                        color: colors.text,
+                                      },
+                                      status === 'saving' && styles.boxSaving,
+                                      status === 'saved' && styles.boxSaved,
+                                      status === 'error' && styles.boxError,
+                                    ]}
+                                    defaultValue={pVal}
+                                    placeholder="-"
+                                    placeholderTextColor={colors.muted}
+                                    keyboardType="numeric"
+                                    maxLength={5}
+                                    onEndEditing={(e) =>
+                                      handleScoreBoxChange(item.id, 'paper', es.id, paper.id, e.nativeEvent.text)
+                                    }
+                                  />
+                                </View>
+                              );
+                            });
+                          } else {
+                            const cellKey = `${item.id}_examset_${es.id}_`;
+                            const status = cellStatus[cellKey];
+                            const maxM = es.max || 100;
+                            const esVal = item.examsetMarks ? String(item.examsetMarks[es.id] ?? '') : '';
+
+                            return (
+                              <View key={`es-${es.id}`} style={styles.scoreInputItem}>
+                                <View style={styles.scoreInputHeader}>
+                                  <Text style={[styles.scoreLabel, { color: colors.subtext }]}>
+                                    {String(es.short_name).toUpperCase()}
+                                  </Text>
+                                  <Text style={[styles.scoreMax, { color: colors.muted }]}>/{maxM}</Text>
+                                </View>
+                                <TextInput
+                                  style={[
+                                    styles.mobileScoreBox,
+                                    {
+                                      backgroundColor: colors.inputBg,
+                                      borderColor: colors.border,
+                                      color: colors.text,
+                                    },
+                                    status === 'saving' && styles.boxSaving,
+                                    status === 'saved' && styles.boxSaved,
+                                    status === 'error' && styles.boxError,
+                                  ]}
+                                  defaultValue={esVal}
+                                  placeholder="-"
+                                  placeholderTextColor={colors.muted}
+                                  keyboardType="numeric"
+                                  maxLength={5}
+                                  onEndEditing={(e) =>
+                                    handleScoreBoxChange(item.id, 'examset', es.id, undefined, e.nativeEvent.text)
+                                  }
+                                />
+                              </View>
+                            );
+                          }
+                        })
+                      ) : hasPapers ? (
+                        papers.map((paper) => {
+                          const cellKey = `${item.id}_paper__${paper.id}`;
+                          const status = cellStatus[cellKey];
+                          const maxM = paper.max || 100;
+                          const pMap = item.paperMarks && item.paperMarks[paper.id];
+                          const pVal = pMap && pMap['default'] !== undefined ? String(pMap['default']) : '';
 
                           return (
-                            <View key={es.id} style={styles.examInputBox}>
-                              <Text style={[styles.examSetLabel, { color: colors.muted }]}>
-                                {es.short_name || es.name}
-                              </Text>
+                            <View key={`paper-${paper.id}`} style={styles.scoreInputItem}>
+                              <View style={styles.scoreInputHeader}>
+                                <Text style={[styles.scoreLabel, { color: colors.subtext }]}>P{paper.number}</Text>
+                                <Text style={[styles.scoreMax, { color: colors.muted }]}>/{maxM}</Text>
+                              </View>
                               <TextInput
                                 style={[
-                                  styles.examScoreInput,
+                                  styles.mobileScoreBox,
                                   {
                                     backgroundColor: colors.inputBg,
-                                    borderColor: currentVal ? '#2563eb' : colors.border,
+                                    borderColor: colors.border,
                                     color: colors.text,
                                   },
+                                  status === 'saving' && styles.boxSaving,
+                                  status === 'saved' && styles.boxSaved,
+                                  status === 'error' && styles.boxError,
                                 ]}
-                                defaultValue={currentVal}
-                                onEndEditing={(e) =>
-                                  handleCellMarkSave(item.id, fieldKey, e.nativeEvent.text, {
-                                    examset_id: es.id,
-                                  })
-                                }
-                                placeholder="—"
+                                defaultValue={pVal}
+                                placeholder="-"
                                 placeholderTextColor={colors.muted}
                                 keyboardType="numeric"
                                 maxLength={5}
+                                onEndEditing={(e) =>
+                                  handleScoreBoxChange(item.id, 'paper', undefined, paper.id, e.nativeEvent.text)
+                                }
                               />
                             </View>
                           );
-                        })}
-                      </View>
-                    </View>
-                  )}
+                        })
+                      ) : (
+                        <View style={styles.scoreInputItem}>
+                          <View style={styles.scoreInputHeader}>
+                            <Text style={[styles.scoreLabel, { color: colors.subtext }]}>MARK</Text>
+                            <Text style={[styles.scoreMax, { color: colors.muted }]}>/100</Text>
+                          </View>
+                          <TextInput
+                            style={[
+                              styles.mobileScoreBox,
+                              {
+                                backgroundColor: colors.inputBg,
+                                borderColor: colors.border,
+                                color: colors.text,
+                              },
+                              cellStatus[`${item.id}_mark100__`] === 'saving' && styles.boxSaving,
+                              cellStatus[`${item.id}_mark100__`] === 'saved' && styles.boxSaved,
+                              cellStatus[`${item.id}_mark100__`] === 'error' && styles.boxError,
+                            ]}
+                            defaultValue={item.currentScore ? String(item.currentScore) : ''}
+                            placeholder="-"
+                            placeholderTextColor={colors.muted}
+                            keyboardType="numeric"
+                            maxLength={5}
+                            onEndEditing={(e) =>
+                              handleScoreBoxChange(item.id, 'mark100', undefined, undefined, e.nativeEvent.text)
+                            }
+                          />
+                        </View>
+                      )
+                    ) : (
+                      /* O-Level Exam sets + Out of 80 */
+                      <>
+                        {hasExamSets ? (
+                          <>
+                            {filteredExamSets.map((es) => {
+                              const cellKey = `${item.id}_examset_${es.id}_`;
+                              const status = cellStatus[cellKey];
+                              const maxM = es.max || 100;
+                              const esVal = item.examsetMarks ? String(item.examsetMarks[es.id] ?? '') : '';
 
-                  {/* C. Fallback Exam Score if neither competency nor examset arrays returned */}
-                  {competencies.length === 0 && examSets.length === 0 && (
-                    <View style={styles.simpleScoreRow}>
-                      <Text style={[styles.scoreGroupLabel, { color: colors.muted }]}>Subject Score (/100):</Text>
-                      <TextInput
-                        style={[
-                          styles.simpleInput,
-                          { backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text },
-                        ]}
-                        defaultValue={item.marks ? String(item.marks.score || '') : ''}
-                        onEndEditing={(e) => handleCellMarkSave(item.id, 'score', e.nativeEvent.text)}
-                        placeholder="0 - 100"
-                        placeholderTextColor={colors.muted}
-                        keyboardType="numeric"
-                        maxLength={5}
-                      />
-                    </View>
-                  )}
+                              return (
+                                <View key={`es-${es.id}`} style={styles.scoreInputItem}>
+                                  <View style={styles.scoreInputHeader}>
+                                    <Text style={[styles.scoreLabel, { color: colors.subtext }]}>
+                                      {String(es.short_name).toUpperCase()}
+                                    </Text>
+                                    <Text style={[styles.scoreMax, { color: colors.muted }]}>/{maxM}</Text>
+                                  </View>
+                                  <TextInput
+                                    style={[
+                                      styles.mobileScoreBox,
+                                      {
+                                        backgroundColor: colors.inputBg,
+                                        borderColor: colors.border,
+                                        color: colors.text,
+                                      },
+                                      status === 'saving' && styles.boxSaving,
+                                      status === 'saved' && styles.boxSaved,
+                                      status === 'error' && styles.boxError,
+                                    ]}
+                                    defaultValue={esVal}
+                                    placeholder="-"
+                                    placeholderTextColor={colors.muted}
+                                    keyboardType="numeric"
+                                    maxLength={5}
+                                    onEndEditing={(e) =>
+                                      handleScoreBoxChange(item.id, 'examset', es.id, undefined, e.nativeEvent.text)
+                                    }
+                                  />
+                                </View>
+                              );
+                            })}
+
+                            {/* Out of 80 Computed Badge */}
+                            <View style={styles.scoreInputItem}>
+                              <View style={styles.scoreInputHeader}>
+                                <Text style={[styles.scoreLabel, { color: '#059669' }]}>OUT / 80</Text>
+                                <Text style={[styles.scoreMax, { color: '#059669', fontWeight: '700' }]}>AUTO</Text>
+                              </View>
+                              <View style={styles.out80ComputedBadge}>
+                                <Text style={styles.out80ComputedText}>
+                                  {item.out80 !== undefined && item.out80 !== null && item.out80 !== ''
+                                    ? String(item.out80)
+                                    : '-'}
+                                </Text>
+                              </View>
+                            </View>
+                          </>
+                        ) : (
+                          <View style={styles.scoreInputItem}>
+                            <View style={styles.scoreInputHeader}>
+                              <Text style={[styles.scoreLabel, { color: colors.subtext }]}>OUT / 80</Text>
+                              <Text style={[styles.scoreMax, { color: colors.muted }]}>/80</Text>
+                            </View>
+                            <TextInput
+                              style={[
+                                styles.mobileScoreBox,
+                                {
+                                  backgroundColor: colors.inputBg,
+                                  borderColor: colors.border,
+                                  color: colors.text,
+                                },
+                                cellStatus[`${item.id}_out80__`] === 'saving' && styles.boxSaving,
+                                cellStatus[`${item.id}_out80__`] === 'saved' && styles.boxSaved,
+                                cellStatus[`${item.id}_out80__`] === 'error' && styles.boxError,
+                              ]}
+                              defaultValue={item.out80 ? String(item.out80) : ''}
+                              placeholder="-"
+                              placeholderTextColor={colors.muted}
+                              keyboardType="numeric"
+                              maxLength={5}
+                              onEndEditing={(e) =>
+                                handleScoreBoxChange(item.id, 'out80', undefined, undefined, e.nativeEvent.text)
+                              }
+                            />
+                          </View>
+                        )}
+                      </>
+                    )}
+                  </View>
                 </View>
-              </View>
-            )}
+              );
+            }}
+            ListFooterComponent={
+              students.length > 0 ? (
+                <View style={styles.listFooterSaveWrap}>
+                  <TouchableOpacity
+                    style={[styles.btnSaveMarks, { backgroundColor: colors.primary }]}
+                    onPress={handleSaveAllMarks}
+                    disabled={savingAll}
+                    activeOpacity={0.85}
+                  >
+                    {savingAll ? (
+                      <ActivityIndicator color="#ffffff" size="small" />
+                    ) : (
+                      <View style={styles.saveBtnContent}>
+                        <Ionicons name="save-outline" size={18} color="#ffffff" />
+                        <Text style={styles.btnSaveMarksText}>Save All Subject Marks</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ) : undefined
+            }
           />
         </View>
       )}
+
+      {/* =====================================================
+          FLOATING SAVE TOAST FEEDBACK (#mobileSaveToast from app.blade.php)
+          ===================================================== */}
+      {saveToast.status !== 'idle' && (
+        <View
+          style={[
+            styles.floatingSaveToast,
+            saveToast.status === 'saving' && { backgroundColor: '#2563eb' },
+            saveToast.status === 'saved' && { backgroundColor: '#059669' },
+            saveToast.status === 'error' && { backgroundColor: '#dc2626' },
+          ]}
+        >
+          <Ionicons
+            name={
+              saveToast.status === 'saved'
+                ? 'checkmark-circle'
+                : saveToast.status === 'error'
+                ? 'alert-circle'
+                : 'sync'
+            }
+            size={16}
+            color="#ffffff"
+          />
+          <Text style={styles.floatingToastText}>{saveToast.message}</Text>
+        </View>
+      )}
+
+      {/* =====================================================
+          1. CLASS SELECTOR MODAL
+          ===================================================== */}
+      <Modal
+        visible={isClassModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsClassModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsClassModalVisible(false)}
+        >
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>1. Select Class</Text>
+              <TouchableOpacity onPress={() => setIsClassModalVisible(false)}>
+                <Ionicons name="close" size={22} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 340 }}>
+              {schoolClasses.map((cls) => {
+                const isSelected = String(selectedClassId) === String(cls.id);
+                return (
+                  <TouchableOpacity
+                    key={`modal-cls-${cls.id}`}
+                    style={[styles.modalOption, isSelected && { backgroundColor: colors.primaryLight }]}
+                    onPress={() => {
+                      setSelectedClassId(cls.id);
+                      setSelectedStreamId(null);
+                      setIsClassModalVisible(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        isSelected ? { color: colors.primary, fontWeight: '700' } : { color: colors.text },
+                      ]}
+                    >
+                      {cls.name}
+                    </Text>
+                    {isSelected && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* =====================================================
+          2. SUBJECT SELECTOR MODAL
+          ===================================================== */}
+      <Modal
+        visible={isSubjectModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsSubjectModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsSubjectModalVisible(false)}
+        >
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>2. Select Subject</Text>
+              <TouchableOpacity onPress={() => setIsSubjectModalVisible(false)}>
+                <Ionicons name="close" size={22} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 340 }}>
+              {classSubjects.map((sub) => {
+                const isSelected = String(selectedSubjectId) === String(sub.id);
+                return (
+                  <TouchableOpacity
+                    key={`modal-sub-${sub.id}`}
+                    style={[styles.modalOption, isSelected && { backgroundColor: colors.primaryLight }]}
+                    onPress={() => {
+                      setSelectedSubjectId(sub.id);
+                      setIsSubjectModalVisible(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        isSelected ? { color: colors.primary, fontWeight: '700' } : { color: colors.text },
+                      ]}
+                    >
+                      {sub.name}
+                    </Text>
+                    {isSelected && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* =====================================================
+          3. STREAM SELECTOR MODAL
+          ===================================================== */}
+      <Modal
+        visible={isStreamModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsStreamModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsStreamModalVisible(false)}
+        >
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>3. Select Stream</Text>
+              <TouchableOpacity onPress={() => setIsStreamModalVisible(false)}>
+                <Ionicons name="close" size={22} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 300 }}>
+              <TouchableOpacity
+                style={[styles.modalOption, selectedStreamId === null && { backgroundColor: colors.primaryLight }]}
+                onPress={() => {
+                  setSelectedStreamId(null);
+                  setIsStreamModalVisible(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    selectedStreamId === null ? { color: colors.primary, fontWeight: '700' } : { color: colors.text },
+                  ]}
+                >
+                  All Streams
+                </Text>
+                {selectedStreamId === null && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+              </TouchableOpacity>
+              {availableStreams.map((st) => {
+                const isSelected = String(selectedStreamId) === String(st.id);
+                return (
+                  <TouchableOpacity
+                    key={`modal-st-${st.id}`}
+                    style={[styles.modalOption, isSelected && { backgroundColor: colors.primaryLight }]}
+                    onPress={() => {
+                      setSelectedStreamId(st.id);
+                      setIsStreamModalVisible(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        isSelected ? { color: colors.primary, fontWeight: '700' } : { color: colors.text },
+                      ]}
+                    >
+                      {st.name}
+                    </Text>
+                    {isSelected && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* =====================================================
+          4. TERM SELECTOR MODAL
+          ===================================================== */}
+      <Modal
+        visible={isTermModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsTermModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsTermModalVisible(false)}
+        >
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>4. Academic Term</Text>
+              <TouchableOpacity onPress={() => setIsTermModalVisible(false)}>
+                <Ionicons name="close" size={22} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 300 }}>
+              {terms.map((t) => {
+                const isSelected = String(selectedTermId) === String(t.id);
+                return (
+                  <TouchableOpacity
+                    key={`modal-term-${t.id}`}
+                    style={[styles.modalOption, isSelected && { backgroundColor: colors.primaryLight }]}
+                    onPress={() => {
+                      setSelectedTermId(t.id);
+                      setIsTermModalVisible(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        isSelected ? { color: colors.primary, fontWeight: '700' } : { color: colors.text },
+                      ]}
+                    >
+                      {t.name} ({t.academic_year || ''})
+                    </Text>
+                    {isSelected && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -574,8 +1136,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  filterCard: {
+  /* Top Filter Card (.m-card from app.blade.php) */
+  mCard: {
     margin: 14,
+    marginBottom: 8,
     borderRadius: 16,
     borderWidth: 1,
     padding: 14,
@@ -616,54 +1180,55 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-  fieldLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginBottom: 6,
-  },
-  pillRow: {
-    flexDirection: 'row',
-    marginBottom: 6,
-  },
-  pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    marginRight: 8,
-  },
-  pillText: {
-    fontSize: 12,
-  },
-  streamTermRow: {
+  filterGrid: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 6,
+    marginBottom: 10,
   },
-  miniPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginRight: 6,
+  filterCol: {
+    flex: 1,
   },
-  miniPillText: {
-    fontSize: 10.5,
+  mLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
-  saveToast: {
+  mSelect: {
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1.5,
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 14,
-    marginBottom: 8,
+    justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 6,
   },
-  saveToastText: {
-    fontSize: 12,
-    fontWeight: '700',
+  selectText: {
+    fontSize: 13,
+    flex: 1,
+    marginRight: 6,
+  },
+
+  /* Empty placeholder */
+  emptyPlaceholder: {
+    marginHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  placeholderTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  placeholderSubtitle: {
+    fontSize: 12.5,
+    textAlign: 'center',
+    lineHeight: 18,
+    maxWidth: 280,
   },
   loadingArea: {
     flex: 1,
@@ -675,186 +1240,287 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 13,
   },
-  emptyPlaceholder: {
-    marginHorizontal: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  placeholderTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  placeholderSubtitle: {
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 18,
-    maxWidth: 270,
-  },
-  rosterHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    marginBottom: 8,
-    gap: 8,
-  },
-  rosterTitle: {
-    fontSize: 12,
-    fontWeight: '800',
+
+  /* Marksheet Sheet Container (.marks-sheet-container from app.blade.php) */
+  marksSheetContainer: {
     flex: 1,
   },
-  searchBox: {
-    width: 140,
+  marksSheetHeader: {
+    marginHorizontal: 14,
+    marginBottom: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 12,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    gap: 10,
+  },
+  sheetHeaderTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  marksSheetHeaderIcon: {
+    width: 36,
     height: 36,
+    borderRadius: 8,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  marksSheetTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  marksSheetSubtitle: {
+    fontSize: 11.5,
+    marginTop: 1,
+  },
+  searchBox: {
+    height: 38,
     borderRadius: 8,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    gap: 5,
+    paddingHorizontal: 10,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 12,
+    fontSize: 13,
     height: '100%',
   },
-  studentScoreCard: {
+
+  /* Learner Card (.assessment-student-card from app.blade.php) */
+  assessmentStudentCard: {
     borderRadius: 14,
     borderWidth: 1,
-    padding: 12,
-    marginBottom: 8,
+    padding: 14,
+    marginBottom: 10,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowRadius: 3,
   },
-  scoreCardHeader: {
+  studentCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingBottom: 8,
+    marginBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
-  scoreCardLeft: {
+  studentCardHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
     marginRight: 8,
+    gap: 10,
   },
-  avatarCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+  studentAvatarBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1e3a8a',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
-  avatarText: {
-    fontSize: 14,
+  avatarLetter: {
+    color: '#ffffff',
+    fontSize: 15,
     fontWeight: '800',
   },
-  studentFullName: {
-    fontSize: 13,
-    fontWeight: '700',
+  studentCardName: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    letterSpacing: 0.1,
   },
-  studentMeta: {
-    fontSize: 11,
+  studentCardMeta: {
+    fontSize: 11.5,
     marginTop: 2,
   },
-  indexBadge: {
-    paddingHorizontal: 7,
+  cardIndexBadge: {
+    paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     borderWidth: 1,
+    flexShrink: 0,
   },
-  indexText: {
-    fontSize: 11,
+  cardIndexText: {
+    fontSize: 11.5,
     fontWeight: '700',
   },
-  scoresContainer: {
-    marginTop: 8,
-  },
-  scoreGroupLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  compGroup: {
-    marginBottom: 4,
-  },
-  compList: {
+
+  /* Scores Grid (.assessment-card-scores-grid) */
+  assessmentScoresGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 8,
+    marginTop: 4,
   },
-  compItem: {
+  scoreInputItem: {
+    flex: 1,
+    minWidth: 70,
+    maxWidth: 120,
+  },
+  scoreInputHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+    paddingHorizontal: 2,
   },
-  compCode: {
+  scoreLabel: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
-  compButtonsRow: {
-    flexDirection: 'row',
-    gap: 4,
+  scoreMax: {
+    fontSize: 10,
+    fontWeight: '600',
   },
-  compBtn: {
-    width: 32,
-    height: 30,
-    borderRadius: 6,
+  mobileScoreBox: {
+    width: '100%',
+    height: 46,
+    minHeight: 46,
+    borderRadius: 8,
     borderWidth: 1.5,
+    fontSize: 17,
+    fontWeight: '700',
+    textAlign: 'center',
+    padding: 0,
+  },
+  boxSaving: {
+    borderColor: '#2563eb',
+    backgroundColor: '#eff6ff',
+  },
+  boxSaved: {
+    borderColor: '#10b981',
+    backgroundColor: '#ecfdf5',
+    color: '#047857',
+  },
+  boxError: {
+    borderColor: '#ef4444',
+    backgroundColor: '#fef2f2',
+    color: '#b91c1c',
+  },
+  out80ComputedBadge: {
+    width: '100%',
+    height: 46,
+    minHeight: 46,
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1.5,
+    borderColor: '#a7f3d0',
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  compBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
+  out80ComputedText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#047857',
   },
-  examGroup: {
-    marginTop: 6,
+
+  /* Save Button at the end of the roster */
+  listFooterSaveWrap: {
+    paddingTop: 16,
+    paddingBottom: 24,
   },
-  examInputsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  examInputBox: {
+  btnSaveMarks: {
+    height: 48,
+    borderRadius: 12,
     alignItems: 'center',
-    gap: 3,
+    justifyContent: 'center',
+    shadowColor: '#0d9488',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  examSetLabel: {
-    fontSize: 10,
+  saveBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  btnSaveMarksText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+
+  /* Floating Save Toast (.mobile-save-toast from app.blade.php) */
+  floatingSaveToast: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 95 : 82,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 30,
+    gap: 8,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    zIndex: 9999,
+  },
+  floatingToastText: {
+    color: '#ffffff',
+    fontSize: 12.5,
     fontWeight: '700',
   },
-  examScoreInput: {
-    width: 58,
-    height: 34,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    textAlign: 'center',
-    fontSize: 13,
-    fontWeight: '700',
+
+  /* Modals */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
-  simpleScoreRow: {
+  modalCard: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 18,
+    elevation: 6,
+  },
+  modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    marginBottom: 6,
   },
-  simpleInput: {
-    width: 80,
-    height: 36,
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
     borderRadius: 8,
-    borderWidth: 1.5,
-    textAlign: 'center',
+  },
+  modalOptionText: {
     fontSize: 14,
-    fontWeight: '700',
   },
 });

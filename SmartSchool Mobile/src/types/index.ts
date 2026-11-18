@@ -44,6 +44,11 @@ export interface Student {
   className?: string;
   attendanceStatus?: 'present' | 'absent' | 'late' | null;
   marks?: Record<string, string | number>;
+  currentScore?: string | number;
+  out80?: string | number | null;
+  examsetMarks?: Record<string, string | number>;
+  competencyMarks?: Record<string, string | number>;
+  paperMarks?: Record<string, Record<string, string | number>>;
 }
 
 export interface ClassSubject {
