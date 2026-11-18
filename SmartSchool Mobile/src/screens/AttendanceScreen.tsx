@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
@@ -42,6 +43,58 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
   // Dropdown modal pickers state
   const [isClassModalVisible, setIsClassModalVisible] = useState<boolean>(false);
   const [isStreamModalVisible, setIsStreamModalVisible] = useState<boolean>(false);
+
+  // Calendar date picker state
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isReadOnly = selectedDate !== todayStr;
+  const [isCalendarModalVisible, setIsCalendarModalVisible] = useState<boolean>(false);
+  const [calendarYear, setCalendarYear] = useState<number>(new Date().getFullYear());
+  const [calendarMonth, setCalendarMonth] = useState<number>(new Date().getMonth());
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  const totalDaysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+  const rawFirstDay = new Date(calendarYear, calendarMonth, 1).getDay();
+  const leadingBlanks = rawFirstDay === 0 ? 6 : rawFirstDay - 1;
+
+  const handlePrevMonth = () => {
+    if (calendarMonth === 0) {
+      setCalendarMonth(11);
+      setCalendarYear((y) => y - 1);
+    } else {
+      setCalendarMonth((m) => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (calendarMonth === 11) {
+      setCalendarMonth(0);
+      setCalendarYear((y) => y + 1);
+    } else {
+      setCalendarMonth((m) => m + 1);
+    }
+  };
+
+  const handleSelectQuickDate = (daysAgo: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    const dateStr = d.toISOString().split('T')[0];
+    setSelectedDate(dateStr);
+    setCalendarYear(d.getFullYear());
+    setCalendarMonth(d.getMonth());
+    setIsCalendarModalVisible(false);
+  };
+
+  const calendarCells: (number | null)[] = [];
+  for (let i = 0; i < leadingBlanks; i++) {
+    calendarCells.push(null);
+  }
+  for (let day = 1; day <= totalDaysInMonth; day++) {
+    calendarCells.push(day);
+  }
 
   // Auto-sync selected class when schoolClasses loads from backend or initialClassId changes
   useEffect(() => {
@@ -123,6 +176,7 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
 
   // Handle single student attendance state change
   const handleStatusChange = (studentId: number | string, status: 'present' | 'absent' | 'late') => {
+    if (isReadOnly) return;
     setStudents((prev) =>
       prev.map((s) => (String(s.id) === String(studentId) ? { ...s, attendanceStatus: status } : s))
     );
@@ -130,11 +184,16 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
 
   // Mark all present (matching markAllAttendance('P') in app.blade.php)
   const handleMarkAllPresent = () => {
+    if (isReadOnly) return;
     setStudents((prev) => prev.map((s) => ({ ...s, attendanceStatus: 'present' })));
   };
 
   // Submit batch attendance to backend
   const handleSaveAttendance = async () => {
+    if (isReadOnly) {
+      Alert.alert('Read-Only Date', 'Attendance records for previous days are view-only and cannot be modified.');
+      return;
+    }
     if (!selectedClassId || students.length === 0) return;
 
     setSaving(true);
@@ -187,16 +246,32 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
           1. TOP FILTER CARD (.m-card from app.blade.php)
           ===================================================== */}
       <View style={[styles.mCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        {/* Header Row: Title & Date Input */}
+        {/* Header Row: Title & Clickable Date Input that opens Calendar */}
         <View style={styles.cardHeaderRow}>
           <View style={styles.titleWithIcon}>
             <Ionicons name="clipboard-outline" size={18} color={colors.primary} />
             <Text style={[styles.cardTitle, { color: colors.text }]}>Class Roll Call</Text>
           </View>
-          <View style={[styles.dateBadge, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+          <TouchableOpacity
+            style={[styles.dateBadge, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+            onPress={() => {
+              try {
+                const parts = selectedDate.split('-');
+                if (parts.length === 3) {
+                  setCalendarYear(parseInt(parts[0], 10));
+                  setCalendarMonth(parseInt(parts[1], 10) - 1);
+                }
+              } catch {}
+              setIsCalendarModalVisible(true);
+            }}
+            activeOpacity={0.75}
+          >
             <Ionicons name="calendar-outline" size={13} color={colors.primary} />
-            <Text style={[styles.dateText, { color: colors.text }]}>{selectedDate}</Text>
-          </View>
+            <Text style={[styles.dateText, { color: colors.text }]}>
+              {selectedDate === todayStr ? `Today (${selectedDate})` : selectedDate}
+            </Text>
+            <Ionicons name="chevron-down" size={11} color={colors.muted} />
+          </TouchableOpacity>
         </View>
 
         {/* 2-Column Filter Grid (.filter-grid from app.blade.php) */}
@@ -253,18 +328,46 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
           </View>
         </View>
 
-        {/* 60-Minute Edit Window Status Banner (.att-window-banner from app.blade.php) */}
-        <View style={styles.attWindowBanner}>
+        {/* Attendance Session / View Window Status Banner */}
+        <View
+          style={[
+            styles.attWindowBanner,
+            isReadOnly && { backgroundColor: '#fef2f2', borderColor: '#fecaca' },
+          ]}
+        >
           <View style={styles.bannerLeft}>
-            <Ionicons name="checkmark-circle" size={15} color="#0f766e" />
-            <Text style={styles.bannerText}>
-              {selectedClassId
-                ? 'New Attendance Session — Editable for 60 minutes after saving.'
-                : 'Select a class to check attendance session status.'}
+            <Ionicons
+              name={isReadOnly ? 'lock-closed' : 'checkmark-circle'}
+              size={15}
+              color={isReadOnly ? '#dc2626' : '#0f766e'}
+            />
+            <Text
+              style={[
+                styles.bannerText,
+                isReadOnly && { color: '#b91c1c' },
+              ]}
+            >
+              {isReadOnly
+                ? `Viewing records for ${selectedDate} (Read-Only — previous days cannot be edited).`
+                : selectedClassId
+                ? 'Today\'s Attendance Session — Editable for 60 minutes after saving.'
+                : 'Select a class to take attendance.'}
             </Text>
           </View>
-          <View style={styles.timerPill}>
-            <Text style={styles.timerPillText}>60m window</Text>
+          <View
+            style={[
+              styles.timerPill,
+              isReadOnly && { backgroundColor: 'rgba(220, 38, 38, 0.12)' },
+            ]}
+          >
+            <Text
+              style={[
+                styles.timerPillText,
+                isReadOnly && { color: '#dc2626' },
+              ]}
+            >
+              {isReadOnly ? 'Read-Only' : '60m window'}
+            </Text>
           </View>
         </View>
 
@@ -280,14 +383,16 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
               placeholderTextColor={colors.muted}
             />
           </View>
-          <TouchableOpacity
-            style={styles.allPresentBtn}
-            onPress={handleMarkAllPresent}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="checkmark-done" size={14} color="#15803d" />
-            <Text style={styles.allPresentBtnText}>All Present</Text>
-          </TouchableOpacity>
+          {!isReadOnly && (
+            <TouchableOpacity
+              style={styles.allPresentBtn}
+              onPress={handleMarkAllPresent}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="checkmark-done" size={14} color="#15803d" />
+              <Text style={styles.allPresentBtnText}>All Present</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -371,9 +476,12 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
                     styles.attBtn,
                     item.attendanceStatus === 'present'
                       ? styles.attBtnActiveP
+                      : isReadOnly
+                      ? { backgroundColor: colors.inputBg, borderColor: colors.border, opacity: 0.3 }
                       : { backgroundColor: colors.inputBg, borderColor: colors.border },
                   ]}
                   onPress={() => handleStatusChange(item.id, 'present')}
+                  disabled={isReadOnly}
                   activeOpacity={0.7}
                 >
                   <Text
@@ -381,7 +489,7 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
                       styles.attBtnText,
                       item.attendanceStatus === 'present'
                         ? styles.attBtnTextActiveP
-                        : { color: colors.subtext },
+                        : { color: colors.subtext, opacity: isReadOnly ? 0.4 : 1 },
                     ]}
                   >
                     P
@@ -394,9 +502,12 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
                     styles.attBtn,
                     item.attendanceStatus === 'absent'
                       ? styles.attBtnActiveA
+                      : isReadOnly
+                      ? { backgroundColor: colors.inputBg, borderColor: colors.border, opacity: 0.3 }
                       : { backgroundColor: colors.inputBg, borderColor: colors.border },
                   ]}
                   onPress={() => handleStatusChange(item.id, 'absent')}
+                  disabled={isReadOnly}
                   activeOpacity={0.7}
                 >
                   <Text
@@ -404,7 +515,7 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
                       styles.attBtnText,
                       item.attendanceStatus === 'absent'
                         ? styles.attBtnTextActiveA
-                        : { color: colors.subtext },
+                        : { color: colors.subtext, opacity: isReadOnly ? 0.4 : 1 },
                     ]}
                   >
                     A
@@ -417,9 +528,12 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
                     styles.attBtn,
                     item.attendanceStatus === 'late'
                       ? styles.attBtnActiveL
+                      : isReadOnly
+                      ? { backgroundColor: colors.inputBg, borderColor: colors.border, opacity: 0.3 }
                       : { backgroundColor: colors.inputBg, borderColor: colors.border },
                   ]}
                   onPress={() => handleStatusChange(item.id, 'late')}
+                  disabled={isReadOnly}
                   activeOpacity={0.7}
                 >
                   <Text
@@ -427,7 +541,7 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
                       styles.attBtnText,
                       item.attendanceStatus === 'late'
                         ? styles.attBtnTextActiveL
-                        : { color: colors.subtext },
+                        : { color: colors.subtext, opacity: isReadOnly ? 0.4 : 1 },
                     ]}
                   >
                     L
@@ -436,31 +550,193 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
               </View>
             </View>
           )}
+          ListFooterComponent={
+            students.length > 0 ? (
+              <View style={styles.listFooterSaveWrap}>
+                {isReadOnly ? (
+                  <View style={[styles.readOnlyFooterNote, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+                    <Ionicons name="lock-closed-outline" size={16} color={colors.muted} />
+                    <Text style={[styles.readOnlyFooterText, { color: colors.muted }]}>
+                      Attendance records for {selectedDate} are read-only and cannot be modified.
+                    </Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.btnSaveAttendance, { backgroundColor: colors.primary }]}
+                    onPress={handleSaveAttendance}
+                    disabled={saving}
+                    activeOpacity={0.85}
+                  >
+                    {saving ? (
+                      <ActivityIndicator color="#ffffff" size="small" />
+                    ) : (
+                      <View style={styles.saveBtnContent}>
+                        <Ionicons name="cloud-upload" size={18} color="#ffffff" />
+                        <Text style={styles.btnSaveText}>Save Class Attendance</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : undefined
+          }
         />
       )}
 
       {/* =====================================================
-          3. BOTTOM SAVE BAR (#attSaveBar from app.blade.php)
+          INTERACTIVE CALENDAR DATE PICKER MODAL
           ===================================================== */}
-      {students.length > 0 && (
-        <View style={[styles.bottomSaveBar, { backgroundColor: colors.background }]}>
-          <TouchableOpacity
-            style={[styles.btnSaveAttendance, { backgroundColor: colors.primary }]}
-            onPress={handleSaveAttendance}
-            disabled={saving}
-            activeOpacity={0.85}
+      <Modal
+        visible={isCalendarModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsCalendarModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsCalendarModalVisible(false)}
+        >
+          <View
+            style={[styles.calendarModalCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onStartShouldSetResponder={() => true}
           >
-            {saving ? (
-              <ActivityIndicator color="#ffffff" size="small" />
-            ) : (
-              <View style={styles.saveBtnContent}>
-                <Ionicons name="cloud-upload" size={18} color="#ffffff" />
-                <Text style={styles.btnSaveText}>Save Class Attendance</Text>
+            {/* Calendar Modal Header */}
+            <View style={styles.calendarModalHeader}>
+              <View style={styles.calMonthNav}>
+                <TouchableOpacity
+                  style={[styles.calNavBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+                  onPress={handlePrevMonth}
+                >
+                  <Ionicons name="chevron-back" size={18} color={colors.text} />
+                </TouchableOpacity>
+
+                <Text style={[styles.calMonthTitle, { color: colors.text }]}>
+                  {monthNames[calendarMonth]} {calendarYear}
+                </Text>
+
+                <TouchableOpacity
+                  style={[styles.calNavBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+                  onPress={handleNextMonth}
+                >
+                  <Ionicons name="chevron-forward" size={18} color={colors.text} />
+                </TouchableOpacity>
               </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      )}
+
+              <TouchableOpacity
+                onPress={() => setIsCalendarModalVisible(false)}
+                style={styles.calCloseBtn}
+              >
+                <Ionicons name="close" size={20} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Quick Preset Buttons (Today, Yesterday, 2 Days Ago) */}
+            <View style={styles.calPresetsRow}>
+              <TouchableOpacity
+                style={[
+                  styles.presetChip,
+                  selectedDate === todayStr && { backgroundColor: colors.primary, borderColor: colors.primary },
+                  selectedDate !== todayStr && { backgroundColor: colors.inputBg, borderColor: colors.border },
+                ]}
+                onPress={() => handleSelectQuickDate(0)}
+              >
+                <Text
+                  style={[
+                    styles.presetChipText,
+                    selectedDate === todayStr ? { color: '#ffffff' } : { color: colors.text },
+                  ]}
+                >
+                  Today
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.presetChip, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+                onPress={() => handleSelectQuickDate(1)}
+              >
+                <Text style={[styles.presetChipText, { color: colors.text }]}>Yesterday</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.presetChip, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+                onPress={() => handleSelectQuickDate(2)}
+              >
+                <Text style={[styles.presetChipText, { color: colors.text }]}>2 Days Ago</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Day of Week Labels (Mo, Tu, We, Th, Fr, Sa, Su) */}
+            <View style={styles.weekdayRow}>
+              {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((dayLabel, idx) => (
+                <View key={`wd-${idx}`} style={styles.weekdayCell}>
+                  <Text style={[styles.weekdayLabel, { color: colors.muted }]}>{dayLabel}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Days Grid */}
+            <View style={styles.calGrid}>
+              {calendarCells.map((dayNum, idx) => {
+                if (!dayNum) {
+                  return <View key={`blank-${idx}`} style={styles.calDayCell} />;
+                }
+
+                const dayDateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(
+                  dayNum
+                ).padStart(2, '0')}`;
+                const isSelected = dayDateStr === selectedDate;
+                const isToday = dayDateStr === todayStr;
+
+                return (
+                  <TouchableOpacity
+                    key={`day-${dayNum}`}
+                    style={[
+                      styles.calDayCell,
+                      isSelected && [styles.calDayCellSelected, { backgroundColor: colors.primary }],
+                      isToday && !isSelected && [styles.calDayCellToday, { borderColor: colors.primary }],
+                    ]}
+                    onPress={() => {
+                      setSelectedDate(dayDateStr);
+                      setIsCalendarModalVisible(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.calDayText,
+                        isSelected
+                          ? styles.calDayTextSelected
+                          : isToday
+                          ? [styles.calDayTextToday, { color: colors.primary }]
+                          : { color: colors.text },
+                      ]}
+                    >
+                      {dayNum}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Modal Footer with current selection */}
+            <View style={[styles.calModalFooter, { borderTopColor: colors.border }]}>
+              <View style={styles.calFooterSelectedWrap}>
+                <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+                <Text style={[styles.calFooterDateText, { color: colors.text }]}>
+                  Selected: <Text style={{ fontWeight: '800' }}>{selectedDate}</Text>
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.calCloseDoneBtn, { backgroundColor: colors.primary }]}
+                onPress={() => setIsCalendarModalVisible(false)}
+              >
+                <Text style={styles.calCloseDoneText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* =====================================================
           CLASS SELECTOR MODAL
@@ -868,17 +1144,24 @@ const styles = StyleSheet.create({
     color: '#b45309',
     fontWeight: '800',
   },
-  /* Save Button matching #attSaveBar in app.blade.php */
-  bottomSaveBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 22,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.05)',
+  /* Save Button at the end of the attendance list */
+  listFooterSaveWrap: {
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  readOnlyFooterNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  readOnlyFooterText: {
+    fontSize: 12.5,
+    fontWeight: '600',
   },
   btnSaveAttendance: {
     height: 48,
@@ -941,5 +1224,132 @@ const styles = StyleSheet.create({
   },
   modalOptionText: {
     fontSize: 14,
+  },
+  /* Calendar Modal Styles */
+  calendarModalCard: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 18,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  calendarModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  calMonthNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  calNavBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  calMonthTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    minWidth: 140,
+    textAlign: 'center',
+  },
+  calCloseBtn: {
+    padding: 4,
+  },
+  calPresetsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  presetChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  presetChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  weekdayRow: {
+    flexDirection: 'row',
+    marginBottom: 6,
+  },
+  weekdayCell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+  weekdayLabel: {
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  calGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 10,
+  },
+  calDayCell: {
+    width: '14.28%',
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 2,
+    borderRadius: 10,
+  },
+  calDayCellSelected: {
+    borderRadius: 10,
+  },
+  calDayCellToday: {
+    borderWidth: 1.5,
+    borderRadius: 10,
+  },
+  calDayText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  calDayTextSelected: {
+    color: '#ffffff',
+    fontWeight: '800',
+  },
+  calDayTextToday: {
+    fontWeight: '800',
+  },
+  calModalFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    marginTop: 4,
+  },
+  calFooterSelectedWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  calFooterDateText: {
+    fontSize: 12,
+  },
+  calCloseDoneBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  calCloseDoneText: {
+    color: '#ffffff',
+    fontSize: 12.5,
+    fontWeight: '700',
   },
 });

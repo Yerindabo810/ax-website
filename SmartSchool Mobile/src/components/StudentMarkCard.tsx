@@ -11,7 +11,7 @@ interface StudentMarkCardProps {
   competencyCode?: string; // e.g. 'A1', 'A2', 'A3'
   examPaperId?: number | string;
   initialScore?: number | string;
-  onSaveMark: (studentId: number, score: number | string) => Promise<boolean>;
+  onSaveMark: (studentId: number | string, score: number | string) => Promise<boolean>;
 }
 
 export const StudentMarkCard: React.FC<StudentMarkCardProps> = ({
