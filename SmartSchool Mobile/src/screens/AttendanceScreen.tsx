@@ -9,6 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
@@ -37,6 +38,10 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+
+  // Dropdown modal pickers state
+  const [isClassModalVisible, setIsClassModalVisible] = useState<boolean>(false);
+  const [isStreamModalVisible, setIsStreamModalVisible] = useState<boolean>(false);
 
   // Auto-sync selected class when schoolClasses loads from backend or initialClassId changes
   useEffect(() => {
@@ -123,7 +128,7 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
     );
   };
 
-  // Mark all present
+  // Mark all present (matching markAllAttendance('P') in app.blade.php)
   const handleMarkAllPresent = () => {
     setStudents((prev) => prev.map((s) => ({ ...s, attendanceStatus: 'present' })));
   };
@@ -174,13 +179,18 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
   const absentCount = students.filter((s) => s.attendanceStatus === 'absent').length;
   const lateCount = students.filter((s) => s.attendanceStatus === 'late').length;
 
+  const activeStreamObj = availableStreams.find((st) => String(st.id) === String(selectedStreamId));
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* 1. Filter Card (matches tab-attendance top card in app.blade.php) */}
-      <View style={[styles.filterCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {/* =====================================================
+          1. TOP FILTER CARD (.m-card from app.blade.php)
+          ===================================================== */}
+      <View style={[styles.mCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        {/* Header Row: Title & Date Input */}
         <View style={styles.cardHeaderRow}>
           <View style={styles.titleWithIcon}>
-            <Ionicons name="clipboard" size={18} color={colors.primary} />
+            <Ionicons name="clipboard-outline" size={18} color={colors.primary} />
             <Text style={[styles.cardTitle, { color: colors.text }]}>Class Roll Call</Text>
           </View>
           <View style={[styles.dateBadge, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
@@ -189,113 +199,79 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
           </View>
         </View>
 
-        {/* 1. Class Selector Scroll */}
-        <Text style={[styles.fieldLabel, { color: colors.muted }]}>Select Class</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
-          {schoolClasses && schoolClasses.length > 0 ? (
-            schoolClasses.map((cls, idx) => {
-              const isSelected = String(selectedClassId) === String(cls.id);
-              return (
-                <TouchableOpacity
-                  key={`cls-${cls.id || idx}`}
-                  style={[
-                    styles.classPill,
-                    isSelected
-                      ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                      : { backgroundColor: colors.inputBg, borderColor: colors.border },
-                  ]}
-                  onPress={() => {
-                    setSelectedClassId(cls.id);
-                    setSelectedStreamId(null);
-                  }}
-                  activeOpacity={0.75}
-                >
-                  <Text
-                    style={[
-                      styles.classPillText,
-                      isSelected ? { color: '#ffffff', fontWeight: '800' } : { color: colors.subtext },
-                    ]}
-                  >
-                    {cls.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })
-          ) : (
-            <Text style={[styles.noDataText, { color: colors.muted }]}>No classes loaded from school</Text>
-          )}
-        </ScrollView>
-
-        {/* 2. Stream Selector Scroll (Optional) */}
-        {availableStreams.length > 0 && (
-          <>
-            <Text style={[styles.fieldLabel, { color: colors.muted, marginTop: 10 }]}>Stream (Optional)</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
-              <TouchableOpacity
+        {/* 2-Column Filter Grid (.filter-grid from app.blade.php) */}
+        <View style={styles.filterGrid}>
+          {/* Column 1: Select Class */}
+          <View style={styles.filterCol}>
+            <Text style={[styles.mLabel, { color: colors.muted }]}>Select Class</Text>
+            <TouchableOpacity
+              style={[styles.mSelect, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+              onPress={() => setIsClassModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Text
                 style={[
-                  styles.streamPill,
-                  selectedStreamId === null
-                    ? { backgroundColor: colors.text, borderColor: colors.text }
-                    : { backgroundColor: colors.inputBg, borderColor: colors.border },
+                  styles.selectText,
+                  selectedClassId ? { color: colors.text, fontWeight: '700' } : { color: colors.muted },
                 ]}
-                onPress={() => setSelectedStreamId(null)}
-                activeOpacity={0.75}
+                numberOfLines={1}
               >
-                <Text
-                  style={[
-                    styles.streamPillText,
-                    selectedStreamId === null ? { color: colors.card, fontWeight: '700' } : { color: colors.muted },
-                  ]}
-                >
-                  All Streams
-                </Text>
-              </TouchableOpacity>
-              {availableStreams.map((st, idx) => {
-                const isSelected = String(selectedStreamId) === String(st.id);
-                return (
-                  <TouchableOpacity
-                    key={`stream-${st.id || idx}`}
-                    style={[
-                      styles.streamPill,
-                      isSelected
-                        ? { backgroundColor: colors.text, borderColor: colors.text }
-                        : { backgroundColor: colors.inputBg, borderColor: colors.border },
-                    ]}
-                    onPress={() => setSelectedStreamId(st.id)}
-                    activeOpacity={0.75}
-                  >
-                    <Text
-                      style={[
-                        styles.streamPillText,
-                        isSelected ? { color: colors.card, fontWeight: '700' } : { color: colors.muted },
-                      ]}
-                    >
-                      {st.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </>
-        )}
-
-        {/* 60-Minute Edit Window Status Banner (matches #attSessionBanner in app.blade.php) */}
-        <View style={[styles.sessionBanner, { backgroundColor: colors.primaryLight }]}>
-          <View style={styles.sessionLeft}>
-            <Ionicons name="time-outline" size={14} color={colors.primary} />
-            <Text style={[styles.sessionText, { color: colors.primary }]}>
-              {selectedClassId ? 'Editable for 60 mins • Then saves as new roll call' : 'Select a class to take roll call'}
-            </Text>
+                {activeClassObj ? activeClassObj.name : '-- Choose Class --'}
+              </Text>
+              <Ionicons name="chevron-down" size={15} color={colors.muted} />
+            </TouchableOpacity>
           </View>
-          <View style={[styles.windowPill, { backgroundColor: colors.card }]}>
-            <Text style={[styles.windowPillText, { color: colors.primary }]}>60m window</Text>
+
+          {/* Column 2: Stream (Optional) */}
+          <View style={styles.filterCol}>
+            <Text style={[styles.mLabel, { color: colors.muted }]}>Stream (Optional)</Text>
+            <TouchableOpacity
+              style={[
+                styles.mSelect,
+                { backgroundColor: colors.inputBg, borderColor: colors.border },
+                availableStreams.length === 0 && { opacity: 0.6 },
+              ]}
+              onPress={() => {
+                if (availableStreams.length > 0) {
+                  setIsStreamModalVisible(true);
+                }
+              }}
+              disabled={availableStreams.length === 0}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.selectText,
+                  selectedStreamId ? { color: colors.text, fontWeight: '700' } : { color: colors.muted },
+                ]}
+                numberOfLines={1}
+              >
+                {activeStreamObj ? activeStreamObj.name : 'All Streams'}
+              </Text>
+              <Ionicons name="chevron-down" size={15} color={colors.muted} />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Search & "All Present" Button Row */}
+        {/* 60-Minute Edit Window Status Banner (.att-window-banner from app.blade.php) */}
+        <View style={styles.attWindowBanner}>
+          <View style={styles.bannerLeft}>
+            <Ionicons name="checkmark-circle" size={15} color="#0f766e" />
+            <Text style={styles.bannerText}>
+              {selectedClassId
+                ? 'New Attendance Session — Editable for 60 minutes after saving.'
+                : 'Select a class to check attendance session status.'}
+            </Text>
+          </View>
+          <View style={styles.timerPill}>
+            <Text style={styles.timerPillText}>60m window</Text>
+          </View>
+        </View>
+
+        {/* Search & All Present Row (matches app.blade.php) */}
         <View style={styles.searchAllPresentRow}>
           <View style={[styles.searchBox, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
-            <Ionicons name="search" size={14} color={colors.muted} />
+            <Ionicons name="search" size={15} color={colors.muted} />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
               value={searchQuery}
@@ -305,7 +281,7 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
             />
           </View>
           <TouchableOpacity
-            style={[styles.allPresentBtn, { backgroundColor: '#dcfce7', borderColor: '#86efac' }]}
+            style={styles.allPresentBtn}
             onPress={handleMarkAllPresent}
             activeOpacity={0.8}
           >
@@ -343,7 +319,9 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
         </View>
       )}
 
-      {/* 2. Student Roster List */}
+      {/* =====================================================
+          2. LEARNER ROSTER LIST (.learner-item from app.blade.php)
+          ===================================================== */}
       {loading ? (
         <View style={styles.loadingArea}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -356,104 +334,103 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
           <Ionicons name="people-outline" size={40} color={colors.muted} />
           <Text style={[styles.placeholderTitle, { color: colors.text }]}>Select a Class Above</Text>
           <Text style={[styles.placeholderSubtitle, { color: colors.muted }]}>
-            Choose a class from the list above to open the live roll call roster.
+            Select a Class above to take {learnersLabel.toLowerCase()} attendance.
           </Text>
         </View>
       ) : filteredStudents.length === 0 ? (
         <View style={[styles.emptyPlaceholder, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Ionicons name="search-outline" size={36} color={colors.muted} />
-          <Text style={[styles.placeholderTitle, { color: colors.text }]}>No Students Found</Text>
+          <Text style={[styles.placeholderTitle, { color: colors.text }]}>No Learners Found</Text>
           <Text style={[styles.placeholderSubtitle, { color: colors.muted }]}>
-            {searchQuery ? 'No enrolled student matches that name' : 'No students registered in this class'}
+            {searchQuery ? 'No enrolled learner matches that name.' : 'No learners registered in this class/stream.'}
           </Text>
         </View>
       ) : (
         <FlatList
           data={filteredStudents}
           keyExtractor={(item, index) => String(item?.id || index)}
-          contentContainerStyle={{ paddingHorizontal: 14, paddingTop: 6, paddingBottom: 110 }}
-          renderItem={({ item, index }) => (
-            <View style={[styles.studentCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <View style={styles.cardTopRow}>
-                <View style={styles.studentInfoLeft}>
-                  <View style={[styles.avatarCircle, { backgroundColor: colors.primaryLight }]}>
-                    <Text style={[styles.avatarText, { color: colors.primary }]}>
-                      {item.surname ? item.surname.charAt(0).toUpperCase() : 'S'}
-                    </Text>
-                  </View>
-                  <View style={styles.nameBlock}>
-                    <Text style={[styles.studentFullName, { color: colors.text }]} numberOfLines={1}>
-                      {item.fullName.toUpperCase()}
-                    </Text>
-                    <Text style={[styles.studentMeta, { color: colors.muted }]}>
-                      {item.lin} {item.streamName ? `• Stream ${item.streamName}` : ''}
-                    </Text>
-                  </View>
-                </View>
-                <View style={[styles.indexBadge, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
-                  <Text style={[styles.indexText, { color: colors.subtext }]}>#{index + 1}</Text>
-                </View>
+          contentContainerStyle={{ paddingHorizontal: 14, paddingTop: 4, paddingBottom: 110 }}
+          renderItem={({ item }) => (
+            /* EXACT .learner-item ROW MATCHING app.blade.php */
+            <View style={[styles.learnerItem, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              {/* Left Column: Name & ID (.learner-info) */}
+              <View style={styles.learnerInfo}>
+                <Text style={[styles.learnerName, { color: colors.text }]} numberOfLines={1}>
+                  {item.fullName.toUpperCase()}
+                </Text>
+                <Text style={[styles.learnerSub, { color: colors.muted }]}>
+                  ID: {item.lin} {item.streamName ? `• Stream ${item.streamName}` : ''}
+                </Text>
               </View>
 
-              {/* 3-State Toggle Action Buttons */}
-              <View style={styles.toggleRow}>
+              {/* Right Column: Attendance Pills (.att-pill-group: [ P ] [ A ] [ L ]) */}
+              <View style={styles.attPillGroup}>
+                {/* [ P ] Button */}
                 <TouchableOpacity
                   style={[
-                    styles.toggleBtn,
+                    styles.attBtn,
                     item.attendanceStatus === 'present'
-                      ? { backgroundColor: '#16a34a', borderColor: '#15803d' }
+                      ? styles.attBtnActiveP
                       : { backgroundColor: colors.inputBg, borderColor: colors.border },
                   ]}
                   onPress={() => handleStatusChange(item.id, 'present')}
-                  activeOpacity={0.8}
+                  activeOpacity={0.7}
                 >
                   <Text
                     style={[
-                      styles.toggleText,
-                      item.attendanceStatus === 'present' ? { color: '#ffffff', fontWeight: '800' } : { color: colors.subtext },
+                      styles.attBtnText,
+                      item.attendanceStatus === 'present'
+                        ? styles.attBtnTextActiveP
+                        : { color: colors.subtext },
                     ]}
                   >
-                    ✓ Present
+                    P
                   </Text>
                 </TouchableOpacity>
 
+                {/* [ A ] Button */}
                 <TouchableOpacity
                   style={[
-                    styles.toggleBtn,
+                    styles.attBtn,
                     item.attendanceStatus === 'absent'
-                      ? { backgroundColor: '#dc2626', borderColor: '#b91c1c' }
+                      ? styles.attBtnActiveA
                       : { backgroundColor: colors.inputBg, borderColor: colors.border },
                   ]}
                   onPress={() => handleStatusChange(item.id, 'absent')}
-                  activeOpacity={0.8}
+                  activeOpacity={0.7}
                 >
                   <Text
                     style={[
-                      styles.toggleText,
-                      item.attendanceStatus === 'absent' ? { color: '#ffffff', fontWeight: '800' } : { color: colors.subtext },
+                      styles.attBtnText,
+                      item.attendanceStatus === 'absent'
+                        ? styles.attBtnTextActiveA
+                        : { color: colors.subtext },
                     ]}
                   >
-                    ✕ Absent
+                    A
                   </Text>
                 </TouchableOpacity>
 
+                {/* [ L ] Button */}
                 <TouchableOpacity
                   style={[
-                    styles.toggleBtn,
+                    styles.attBtn,
                     item.attendanceStatus === 'late'
-                      ? { backgroundColor: '#d97706', borderColor: '#b45309' }
+                      ? styles.attBtnActiveL
                       : { backgroundColor: colors.inputBg, borderColor: colors.border },
                   ]}
                   onPress={() => handleStatusChange(item.id, 'late')}
-                  activeOpacity={0.8}
+                  activeOpacity={0.7}
                 >
                   <Text
                     style={[
-                      styles.toggleText,
-                      item.attendanceStatus === 'late' ? { color: '#ffffff', fontWeight: '800' } : { color: colors.subtext },
+                      styles.attBtnText,
+                      item.attendanceStatus === 'late'
+                        ? styles.attBtnTextActiveL
+                        : { color: colors.subtext },
                     ]}
                   >
-                    ◷ Late
+                    L
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -462,9 +439,11 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
         />
       )}
 
-      {/* 3. Floating Save Bar (matches #attSaveBar in app.blade.php) */}
+      {/* =====================================================
+          3. BOTTOM SAVE BAR (#attSaveBar from app.blade.php)
+          ===================================================== */}
       {students.length > 0 && (
-        <View style={styles.floatingBottom}>
+        <View style={[styles.bottomSaveBar, { backgroundColor: colors.background }]}>
           <TouchableOpacity
             style={[styles.btnSaveAttendance, { backgroundColor: colors.primary }]}
             onPress={handleSaveAttendance}
@@ -472,16 +451,143 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
             activeOpacity={0.85}
           >
             {saving ? (
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color="#ffffff" size="small" />
             ) : (
               <View style={styles.saveBtnContent}>
                 <Ionicons name="cloud-upload" size={18} color="#ffffff" />
-                <Text style={styles.saveBtnLabel}>Save Class Attendance</Text>
+                <Text style={styles.btnSaveText}>Save Class Attendance</Text>
               </View>
             )}
           </TouchableOpacity>
         </View>
       )}
+
+      {/* =====================================================
+          CLASS SELECTOR MODAL
+          ===================================================== */}
+      <Modal
+        visible={isClassModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsClassModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsClassModalVisible(false)}
+        >
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Select Class</Text>
+              <TouchableOpacity onPress={() => setIsClassModalVisible(false)}>
+                <Ionicons name="close" size={22} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 340 }}>
+              {schoolClasses.map((cls) => {
+                const isSelected = String(selectedClassId) === String(cls.id);
+                return (
+                  <TouchableOpacity
+                    key={`modal-cls-${cls.id}`}
+                    style={[
+                      styles.modalOption,
+                      isSelected && { backgroundColor: colors.primaryLight },
+                    ]}
+                    onPress={() => {
+                      setSelectedClassId(cls.id);
+                      setSelectedStreamId(null);
+                      setIsClassModalVisible(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        isSelected ? { color: colors.primary, fontWeight: '700' } : { color: colors.text },
+                      ]}
+                    >
+                      {cls.name}
+                    </Text>
+                    {isSelected && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* =====================================================
+          STREAM SELECTOR MODAL
+          ===================================================== */}
+      <Modal
+        visible={isStreamModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsStreamModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsStreamModalVisible(false)}
+        >
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Select Stream</Text>
+              <TouchableOpacity onPress={() => setIsStreamModalVisible(false)}>
+                <Ionicons name="close" size={22} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 300 }}>
+              <TouchableOpacity
+                style={[
+                  styles.modalOption,
+                  selectedStreamId === null && { backgroundColor: colors.primaryLight },
+                ]}
+                onPress={() => {
+                  setSelectedStreamId(null);
+                  setIsStreamModalVisible(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    selectedStreamId === null ? { color: colors.primary, fontWeight: '700' } : { color: colors.text },
+                  ]}
+                >
+                  All Streams
+                </Text>
+                {selectedStreamId === null && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+              </TouchableOpacity>
+              {availableStreams.map((st) => {
+                const isSelected = String(selectedStreamId) === String(st.id);
+                return (
+                  <TouchableOpacity
+                    key={`modal-st-${st.id}`}
+                    style={[
+                      styles.modalOption,
+                      isSelected && { backgroundColor: colors.primaryLight },
+                    ]}
+                    onPress={() => {
+                      setSelectedStreamId(st.id);
+                      setIsStreamModalVisible(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        isSelected ? { color: colors.primary, fontWeight: '700' } : { color: colors.text },
+                      ]}
+                    >
+                      {st.name}
+                    </Text>
+                    {isSelected && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -490,8 +596,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  filterCard: {
+  mCard: {
     margin: 14,
+    marginBottom: 8,
     borderRadius: 16,
     borderWidth: 1,
     padding: 14,
@@ -529,69 +636,72 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  fieldLabel: {
+  filterGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  filterCol: {
+    flex: 1,
+  },
+  mLabel: {
     fontSize: 11,
     fontWeight: '700',
+    marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
-    marginBottom: 6,
   },
-  pillRow: {
-    flexDirection: 'row',
-    marginBottom: 6,
-  },
-  classPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+  mSelect: {
+    height: 40,
     borderRadius: 10,
     borderWidth: 1.5,
-    marginRight: 8,
-  },
-  classPillText: {
-    fontSize: 12,
-  },
-  streamPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginRight: 6,
-  },
-  streamPillText: {
-    fontSize: 11,
-  },
-  noDataText: {
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
-  sessionBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 8,
-    marginTop: 8,
-    marginBottom: 10,
+    paddingHorizontal: 12,
   },
-  sessionLeft: {
+  selectText: {
+    fontSize: 13,
+    flex: 1,
+    marginRight: 6,
+  },
+  attWindowBanner: {
+    backgroundColor: 'rgba(13, 148, 136, 0.12)',
+    borderWidth: 1,
+    borderColor: '#99f6e4',
+    borderRadius: 12,
+    paddingHorizontal: 11,
+    paddingVertical: 10,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  bannerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     flex: 1,
   },
-  sessionText: {
-    fontSize: 11,
+  bannerText: {
+    fontSize: 11.5,
     fontWeight: '600',
+    color: '#0f766e',
+    lineHeight: 16,
+    flex: 1,
   },
-  windowPill: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 5,
+  timerPill: {
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    flexShrink: 0,
   },
-  windowPillText: {
-    fontSize: 10,
+  timerPillText: {
+    fontSize: 10.5,
     fontWeight: '800',
+    color: '#0f766e',
   },
   searchAllPresentRow: {
     flexDirection: 'row',
@@ -619,7 +729,9 @@ const styles = StyleSheet.create({
     height: 40,
     paddingHorizontal: 12,
     borderRadius: 10,
+    backgroundColor: '#dcfce7',
     borderWidth: 1,
+    borderColor: '#86efac',
     gap: 5,
   },
   allPresentBtnText: {
@@ -684,103 +796,150 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     maxWidth: 270,
   },
-  studentCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 12,
-    marginBottom: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  cardTopRow: {
+  /* EXACT .learner-item ROW STYLES (from app.blade.php) */
+  learnerItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    gap: 10,
   },
-  studentInfoLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  learnerInfo: {
     flex: 1,
-    marginRight: 8,
+    minWidth: 0,
   },
-  avatarCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  avatarText: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  nameBlock: {
-    flex: 1,
-  },
-  studentFullName: {
-    fontSize: 13,
+  learnerName: {
+    fontSize: 13.5,
     fontWeight: '700',
+    letterSpacing: 0.1,
   },
-  studentMeta: {
-    fontSize: 11,
+  learnerSub: {
+    fontSize: 11.5,
     marginTop: 2,
   },
-  indexBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  indexText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  toggleRow: {
+  /* EXACT .att-pill-group BUTTONS: [ P ] [ A ] [ L ] */
+  attPillGroup: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 6,
+    gap: 6,
+    flexShrink: 0,
   },
-  toggleBtn: {
-    flex: 1,
+  attBtn: {
+    width: 38,
     height: 38,
     borderRadius: 10,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  toggleText: {
-    fontSize: 12,
+  attBtnText: {
+    fontSize: 13.5,
+    fontWeight: '800',
   },
-  floatingBottom: {
+  attBtnActiveP: {
+    backgroundColor: '#dcfce7',
+    borderColor: '#16a34a',
+  },
+  attBtnTextActiveP: {
+    color: '#15803d',
+    fontWeight: '800',
+  },
+  attBtnActiveA: {
+    backgroundColor: '#fee2e2',
+    borderColor: '#dc2626',
+  },
+  attBtnTextActiveA: {
+    color: '#b91c1c',
+    fontWeight: '800',
+  },
+  attBtnActiveL: {
+    backgroundColor: '#fef3c7',
+    borderColor: '#d97706',
+  },
+  attBtnTextActiveL: {
+    color: '#b45309',
+    fontWeight: '800',
+  },
+  /* Save Button matching #attSaveBar in app.blade.php */
+  bottomSaveBar: {
     position: 'absolute',
-    bottom: 24,
-    left: 14,
-    right: 14,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 22,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.05)',
   },
   btnSaveAttendance: {
     height: 48,
-    borderRadius: 14,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowColor: '#0d9488',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
   saveBtnContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  saveBtnLabel: {
+  btnSaveText: {
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  /* Modals */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 18,
+    elevation: 6,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    marginBottom: 6,
+  },
+  modalTitle: {
+    fontSize: 16,
     fontWeight: '800',
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  modalOptionText: {
+    fontSize: 14,
   },
 });
