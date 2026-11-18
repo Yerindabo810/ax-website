@@ -60,6 +60,12 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
   const rawFirstDay = new Date(calendarYear, calendarMonth, 1).getDay();
   const leadingBlanks = rawFirstDay === 0 ? 6 : rawFirstDay - 1;
 
+  const currentRealYear = new Date().getFullYear();
+  const currentRealMonth = new Date().getMonth();
+  const isCurrentOrFutureMonth =
+    calendarYear > currentRealYear ||
+    (calendarYear === currentRealYear && calendarMonth >= currentRealMonth);
+
   const handlePrevMonth = () => {
     if (calendarMonth === 0) {
       setCalendarMonth(11);
@@ -70,6 +76,7 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
   };
 
   const handleNextMonth = () => {
+    if (isCurrentOrFutureMonth) return;
     if (calendarMonth === 11) {
       setCalendarMonth(0);
       setCalendarYear((y) => y + 1);
@@ -616,10 +623,19 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
                 </Text>
 
                 <TouchableOpacity
-                  style={[styles.calNavBtn, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+                  style={[
+                    styles.calNavBtn,
+                    { backgroundColor: colors.inputBg, borderColor: colors.border },
+                    isCurrentOrFutureMonth && { opacity: 0.3 },
+                  ]}
                   onPress={handleNextMonth}
+                  disabled={isCurrentOrFutureMonth}
                 >
-                  <Ionicons name="chevron-forward" size={18} color={colors.text} />
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={isCurrentOrFutureMonth ? colors.muted : colors.text}
+                  />
                 </TouchableOpacity>
               </View>
 
@@ -687,6 +703,7 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
                 ).padStart(2, '0')}`;
                 const isSelected = dayDateStr === selectedDate;
                 const isToday = dayDateStr === todayStr;
+                const isFuture = dayDateStr > todayStr;
 
                 return (
                   <TouchableOpacity
@@ -695,10 +712,14 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
                       styles.calDayCell,
                       isSelected && [styles.calDayCellSelected, { backgroundColor: colors.primary }],
                       isToday && !isSelected && [styles.calDayCellToday, { borderColor: colors.primary }],
+                      isFuture && styles.calDayCellFuture,
                     ]}
+                    disabled={isFuture}
                     onPress={() => {
-                      setSelectedDate(dayDateStr);
-                      setIsCalendarModalVisible(false);
+                      if (!isFuture) {
+                        setSelectedDate(dayDateStr);
+                        setIsCalendarModalVisible(false);
+                      }
                     }}
                     activeOpacity={0.7}
                   >
@@ -709,6 +730,8 @@ export const AttendanceScreen: React.FC<{ initialClassId?: number }> = ({ initia
                           ? styles.calDayTextSelected
                           : isToday
                           ? [styles.calDayTextToday, { color: colors.primary }]
+                          : isFuture
+                          ? styles.calDayTextFuture
                           : { color: colors.text },
                       ]}
                     >
@@ -1315,6 +1338,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderRadius: 10,
   },
+  calDayCellFuture: {
+    opacity: 0.22,
+  },
   calDayText: {
     fontSize: 13,
     fontWeight: '600',
@@ -1325,6 +1351,10 @@ const styles = StyleSheet.create({
   },
   calDayTextToday: {
     fontWeight: '800',
+  },
+  calDayTextFuture: {
+    color: '#94a3b8',
+    fontWeight: '400',
   },
   calModalFooter: {
     flexDirection: 'row',
