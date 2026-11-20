@@ -452,6 +452,18 @@ function axInjectPwaTags(string $html, string $scriptDir, string $themeColor = '
         return $html;
     }
 
+    // Skip injection for massive reports, print pages, or non-app views to prevent PHP memory exhaustion
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+    if (
+        strlen($html) > 500000 ||
+        stripos($uri, 'report') !== false ||
+        stripos($uri, 'marksheet') !== false ||
+        stripos($uri, 'students_list_report') !== false ||
+        stripos($uri, 'export') !== false
+    ) {
+        return $html;
+    }
+
     $host = strtolower($_SERVER['HTTP_HOST'] ?? '');
     $isSubdomain = preg_match('/^(pos|tradedesk|books|bizbooks|school|smartschool|campusdesk)\./i', $host);
     $basePath = ($isSubdomain || $scriptDir === '') ? '' : $scriptDir;
